@@ -1,0 +1,10 @@
+- @title = "ATS LXR"
+.content
+  %h1
+    = @title
+  %ul
+    - $repos.each do |repo|
+      %li 
+        = repo[:name]
+
+      

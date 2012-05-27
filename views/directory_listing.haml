@@ -1,0 +1,9 @@
+%h3 Listing for #{@directory.to_path}
+.listing
+  %ul
+    - @entries.each do |filename|
+      %li
+        - if File.directory? "#{@directory.to_path}/#{filename}"
+          - filename += "/"
+        %a{:href=>filename}
+          = filename
