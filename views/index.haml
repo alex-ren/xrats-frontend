@@ -2,9 +2,11 @@
 .content
   %h1
     = @title
+  %h2 Repositories
   %ul
     - $repos.each do |repo|
       %li 
-        = repo[:name]
+        %a{:href=>"/#{repo[:name]}/"}
+          = repo[:name]
 
       

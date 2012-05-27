@@ -2,11 +2,18 @@ require 'sinatra'
 
 $repos = []
 $repos << {name:"foo",home:"ats-0.2.7"}
+$repos << {name:"postiats",home:"ats-0.2.7"}
 
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
     str.gsub!(pattern,replace)
   end
+end
+
+#Let's the web server send the file... will probably change later.
+def lxr_send_file path
+  response.headers['X-Accel-Redirect'] = "#{path}"
+  nil
 end
 
 def listing_of_directory directory
@@ -40,7 +47,7 @@ def make_xref repo_name, path
   ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{repo[:home]}"
   absolute_path = "#{Dir.pwd}/repos/#{repo_name}/#{path}"
   return listing_of_directory(absolute_path) if File.directory? absolute_path
-
+  return lxr_send_file "/repos/#{repo_name}/#{path}" if !path.match(/\.dats/) && !path.match(/\.sats/)
   output = xref_of_file absolute_path
   #Fix up all the links
   replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{repo[:home]}\/(.*)\"/,
@@ -53,6 +60,7 @@ def make_xref_ats_source home, path
   ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{home}"
   absolute_path = "#{Dir.pwd}/ats/#{home}/#{path}"
   return listing_of_directory(absolute_path) if File.directory? absolute_path
+  return lxr_send_file "/ats/#{home}/#{path}" if !path.match(/\.dats/) && !path.match(/\.sats/)
   output = xref_of_file "#{Dir.pwd}/ats/#{home}/#{path}"
   replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{home}\/(.*)\"/,
                   "a href=\"/ats/#{home}/\\1\"")
