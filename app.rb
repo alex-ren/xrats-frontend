@@ -10,7 +10,7 @@ def replace_pattern str, pattern, replace
   end
 end
 
-#Let's the web server send the file... will probably change later.
+#Lets the web server send the file... will probably change later.
 def lxr_send_file path
   response.headers['X-Accel-Redirect'] = "#{path}"
   nil
@@ -25,7 +25,7 @@ def listing_of_directory directory
 end
 
 def xref_of_file path
-  #raise Sinatra::NotFound if not File.exists?(path)
+  raise Sinatra::NotFound if not File.exists?(path)
   file_folder = File.dirname(path)
   atsopt_path = "/opt/ats/bin/atsopt"
   flag = ""
