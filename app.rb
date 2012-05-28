@@ -72,9 +72,11 @@ get '/' do
 end
 
 get '/ats/:home/*' do |home, path|
-  make_xref_ats_source home, path
+  src = make_xref_ats_source home, path
+  haml :ats_source, locals:{source:src}
 end
 
 get '/:repo/*' do  |repo,path|
-  make_xref repo, path
+  src = make_xref repo, path
+  haml :ats_source, locals:{source:src}
 end
