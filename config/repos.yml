@@ -1,0 +1,5 @@
+repos:
+  foo:
+    ats: ats-0.2.7
+  postiats:
+    ats: ats-0.2.7

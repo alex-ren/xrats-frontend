@@ -1,3 +1,5 @@
 ats/*
 repos/*
+config/repo.yml
+config/ats.yml
 Gemfile.lock

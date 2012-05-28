@@ -2,6 +2,14 @@ body {
     background-color:#E0E0E0;
 }
 
+#header {
+    width: 100%;
+    margin: 0 auto;
+    border-style: solid; 
+    border-width: 3px;
+    height: 2em;
+}
+
 .atsyntax {
     color:#E80000;
 }
