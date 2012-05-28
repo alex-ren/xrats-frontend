@@ -1,0 +1,10 @@
+A simple Sinatra application to display ATS Cross Reference. Add a repo to to the repos folder, and add the ATS source you'd like to use for repos inside the ats folder. 
+
+To add a repo named foo, create a folder with the code in it named foo in repos. Then place the ATS compiler's source in ats in a folder like ats-0.2.7. 
+
+Next, edit config/repos.yaml to specify your repo's name and the ATS version used to compile it.
+
+For any versions of ATS you'd like to use as a cross reference, add them
+to config/ats.yaml.
+
+The lib/index.rb script may be used to generate an index for Sphinx. A Rake task will be added later.
