@@ -1,0 +1,39 @@
+source ats_0_2_7
+{
+        type = xmlpipe2
+        xmlpipe_command = ruby lib/index.rb ats/ats-0.2.7
+        xmlpipe_fixup_utf8 = 1
+}
+
+index ats_0_2_7
+{
+        source = ats_0_2_7
+        path = data/ats-0.2.7
+        docinfo = extern
+        mlock  = 0
+        morphology = none
+        min_word_len = 1
+        charset_type = utf-8
+        html_strip = 0
+}
+
+indexer
+{
+        mem_limit = 32M
+}
+
+searchd
+{
+        listen			= 9312
+	log			= /var/log/searchd.log
+	query_log		= /var/log/query.log
+	read_timeout		= 5
+	max_children		= 30
+	pid_file		= /var/log/searchd.pid
+	max_matches		= 1000
+	seamless_rotate		= 1
+	preopen_indexes		= 1
+	unlink_old		= 1
+	workers			= threads # for RT to work
+	binlog_path		= /var/data
+}
