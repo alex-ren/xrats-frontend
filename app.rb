@@ -17,7 +17,6 @@ def lxr_send_file path, browser=true
   else
     #Let nginx send the file
     response.headers['X-Accel-Redirect'] = "#{path}"
-    nil
   end
 end
 
@@ -40,8 +39,7 @@ def xref_of_file path, base
   if path.match(/\.sats/)
     flag = "--static"
   end
-  atsopt = IO.popen("#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} #{flag} #{path}")
-  atsopt.readlines.join("")
+  `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} #{flag} #{path}`
 end
 
 def make_xref folder,repo,path
