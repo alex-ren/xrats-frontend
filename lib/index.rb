@@ -3,11 +3,11 @@ require 'builder/xchar'
 
 path = ARGV[0]
 
-to_process = IO.popen("find -L #{path} -regextype posix-extended -regex '.*\.(dats|sats)'").readlines if path
+to_process = `find -L #{path} -regextype posix-extended -regex '.*\.(dats|sats)'`.split("\n") if path
 
 index_id = 1
 
-puts <<EOS 
+puts <<EOS
 <?xml version="1.0" encoding="utf-8"?>
   <sphinx:docset>
     <sphinx:schema>
