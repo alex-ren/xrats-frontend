@@ -13,10 +13,10 @@ end
 def lxr_send_file path, browser=true
   text = File.open(path,"r").read
   if browser
-    haml :regular_file, locals:{text:text,title:"ATS LXR - "+path}
+    haml :regular_file, locals:{text:text,title:path}
   else
-    #Let Apache send the file
-    response.headers['X-Sendfile'] = "#{Dir.pwd}/#{path}"
+    #Let nginx send the file
+    response.headers['X-Accel-Redirect'] = "#{path}"
     nil
   end
 end
@@ -26,7 +26,7 @@ def listing_of_directory directory
   @directory = Dir.new(directory)
   @entries = @directory.entries
   @entries.sort!
-  haml :directory_listing, locals:{title:"ATS LXR - "+@directory.to_path}
+  haml :directory_listing
 end
 
 def xref_of_file path, base

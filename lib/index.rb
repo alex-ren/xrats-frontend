@@ -5,17 +5,16 @@ path = ARGV[0]
 
 to_process = IO.popen("find -L #{path} -regextype posix-extended -regex '.*\.(dats|sats)'").readlines if path
 
-index_id = 0
+index_id = 1
 
 puts <<EOS 
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="utf-8"?>
   <sphinx:docset>
     <sphinx:schema>
       <sphinx:attr name="path" type="string" default="/"/>
       <sphinx:attr name="type" type="string" default="dats"/>
       <sphinx:field name="content"/>
     </sphinx:schema>
-  </sphinx:docset>
 EOS
 
 to_process.each do |filename|
