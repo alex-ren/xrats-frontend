@@ -26,6 +26,8 @@ set :production_config_path, "#{deploy_to}/config_files"
 set :production_repos_path, "#{deploy_to}/code"
 set :branch, "master"
 
+set :use_sudo, false
+
 namespace :deploy do
   desc "Drop in the server's config files and repositories."
   task :copy_application_config do 
