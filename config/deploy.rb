@@ -1,5 +1,11 @@
 require "bundler/capistrano"
 
+set :bundle_flags, "--deployment --quiet --shebang ruby-local-exec"
+
+set :default_environment, {
+  'PATH' => "$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
+}
+
 set :ssh_options, { :forward_agent => true }
 
 default_run_options[:pty] = true

@@ -4,4 +4,3 @@ data/*
 config/repos.yml
 config/ats.yml
 config/sphinx.conf
-Gemfile.lock
