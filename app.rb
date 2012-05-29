@@ -3,7 +3,6 @@ require 'sinatra'
 require 'yaml'
 require 'json'
 require 'riddle'
-#require 'riddle/2.0.4'
 
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
@@ -80,7 +79,7 @@ end
 
 get "/search" do
   content_type :json
-  $sphinx.query("pthread").to_json
+  $sphinx.query(params["query"],params["indexes"]).to_json
 end
 
 get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
