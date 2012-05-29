@@ -10,7 +10,7 @@ set :ssh_options, { :forward_agent => true }
 
 default_run_options[:pty] = true
 
-set :application, "ATS LXR"
+set :application, "lxrats"
 set :scm_username, "git"
 set :repository, "#{scm_username}@github.com:wdblair/xrats-frontend.git"
 
