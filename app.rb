@@ -16,7 +16,7 @@ def lxr_send_file path, browser=true
     haml :regular_file, locals:{text:text,title:"ATS LXR - "+path}
   else
     #Let nginx send the file
-    repsonse.headers['Content-Type'] = "text/plain"
+    response.headers['Content-Type'] = "text/plain"
     response.headers['X-Accel-Redirect'] = "/protected/#{path}"
   end
 end
