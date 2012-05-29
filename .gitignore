@@ -1,6 +1,7 @@
 ats/*
 repos/*
 data/*
+log/*
 config/repos.yml
 config/ats.yml
 config/sphinx.conf
