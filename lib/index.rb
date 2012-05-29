@@ -1,14 +1,10 @@
 require 'rubygems'
 require 'builder/xchar'
 
-home = ARGV[0]
-name = ARGV[1]
+path = ARGV[0]
 
-repo = IO.popen("find -L /home/william/work/ruby/lxrats/repos/#{name} -regextype posix-extended -regex '.*\.(dats|sats)'").readlines if name
+to_process = IO.popen("find -L #{path} -regextype posix-extended -regex '.*\.(dats|sats)'").readlines if path
 
-home = IO.popen("find -L /home/william/work/ruby/lxrats/ats/#{home} -regextype posix-extended -regex '.*\.(dats|sats)'").readlines
-
-to_process = repo+home
 index_id = 0
 
 puts <<EOS 

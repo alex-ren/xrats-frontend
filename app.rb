@@ -4,15 +4,23 @@ require 'yaml'
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
 
+
+
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
     str.gsub!(pattern,replace)
   end
 end
 
-def lxr_send_file path
-  text = File.open(Dir.pwd+path,"r").read
-  haml :regular_file, locals:{text:text}
+def lxr_send_file path, browser=true
+  text = File.open(path,"r").read
+  if browser
+    haml :regular_file, locals:{text:text,title:path}
+  else
+    #Let nginx send it
+    response.headers['X-Accel-Redirect'] = "#{path}"
+    nil
+  end
 end
 
 def listing_of_directory directory
@@ -38,55 +46,44 @@ def xref_of_file path, base
   atsopt.readlines.join("")
 end
 
-def make_xref repo_name, path
-  repo = {}
-  $repos.each do |name,attr|
-    puts name
-    if name == repo_name
-      repo = attr
-      break
+def make_xref folder,repo,path
+  ats_home = ""
+  base = ""
+  case folder
+  when "repos"
+    $repos.each do |name,attr|
+      if name == repo
+        ats_home= attr["ats"]
+        break
+      end
     end
+    base = "repos/#{repo}"
+  when "ats"
+    ats_home = repo
+    base = "ats/#{ats_home}"
+  else
+    raise Sinatra::NotFound
   end
-  raise Sinatra::NotFound if repo.empty?
-  ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{repo["ats"]}"
-  output = xref_of_file "repos/#{repo_name}/#{path}","repos/#{repo_name}"
-  #Fix up all the links
-  replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{repo["ats"]}\/(.*)\"/,
-                  "a href=\"/ats/#{repo["ats"]}/\\1\"")
-  replace_pattern(output,/a href=\"#{Dir.pwd}\/repos\/(.*)\"/,"a href=\"/\\1\"")
+  ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{ats_home}"
+  output = xref_of_file "#{folder}/#{repo}/#{path}", base
+  replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,"a href=\"/ats/#{ats_home}/\\1\"")
+  replace_pattern(output,/a href=\"#{Dir.pwd}\/repos\/(.*)\"/,"a href=\"/repos/\\1\"")
   output
 end
 
-def make_xref_ats_source ats, path
-  ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{ats}"
-  output = xref_of_file "#{Dir.pwd}/ats/#{ats}/#{path}", ENV["ATSHOME"]
-  replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{ats}\/(.*)\"/,
-                  "a href=\"/ats/#{ats}/\\1\"")
-  output
-end
-
-get '/' do
+get %r{^/(ats|repos)??/?$} do 
   haml :index
 end
 
-get '/repos' do
-  haml :index
-end
-
-get '/ats/:home/*' do |ats, path|
-  rel_path = "ats/#{ats}/#{path}"
-  return listing_of_directory(rel_path) if File.directory? rel_path
-  return lxr_send_file rel_path if !path.match(/\.dats/) && !path.match(/\.sats/)
-  src = make_xref_ats_source ats, path
-  haml :ats_source, locals:{source:src,title:path,header:""}
-end
-
-get '/:repo/*' do  |repo_name,path|
-  rel_path = "repos/#{repo_name}/#{path}"
-  return listing_of_directory(rel_path) if File.directory? rel_path
-  if File.exists?(rel_path) && !path.match(/\.dats/) && !path.match(/\.sats/)
-    return lxr_send_file "/repos/#{repo_name}/#{path}"
+get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
+  @rel_path = "#{folder}/#{repo}/#{path}"
+  puts @rel_path
+  raise Sinatra::NotFound if not File.exists? @rel_path
+  return lxr_send_file @rel_path, false if dflag
+  return listing_of_directory(@rel_path) if File.directory? @rel_path
+  if !path.match(/\.dats/) && !path.match(/\.sats/)
+    return lxr_send_file @rel_path
   end
-  src = make_xref repo_name, path
-  haml :ats_source, locals:{source:src}
+  src = make_xref folder,repo,path
+  haml :ats_source, locals:{source:src,title:path}
 end

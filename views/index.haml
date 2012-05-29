@@ -1,12 +1,15 @@
 - @title = "ATS LXR"
+- @header = haml :default_header
 .content
-  %h1
-    = @title
   %h2 Repositories
   %ul
-    - $repos.each do |repo|
+    - $repos.each do |reponame,attr|
       %li 
-        %a{:href=>"/#{repo[:name]}/"}
-          = repo[:name]
-
-      
+        %a{:href=>"/repos/#{reponame}/"}
+          = reponame
+  %h2 ATS Source Code
+  %ul
+    - $ats.each do |version|
+      %li
+        %a{:href=>"/ats/#{version}/"}
+          = version

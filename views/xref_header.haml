@@ -1,1 +1,16 @@
-= "Foo"
+%span.header_section
+  ATS LXR
+%span.header_section
+  - total = ""
+  - @rel_path.split("/").each do |link|
+    - total += "/#{link}"
+    - href = total
+    - href += "/" if File.directory?(Dir.pwd+total)
+    = "/"
+    %a{:href=>href,:target=>"_blank"}
+      = "#{link}"
+- if File.file? @rel_path
+  %span.header_section
+    %a{:href=>"/download/#{@rel_path}",:target=>"_blank"}
+      Download
+.cl
