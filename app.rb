@@ -13,7 +13,7 @@ end
 def lxr_send_file path, browser=true
   text = File.open(path,"r").read
   if browser
-    haml :regular_file, locals:{text:text,title:path}
+    haml :regular_file, locals:{text:text,title:"ATS LXR - "+path}
   else
     #Let nginx send the file
     response.headers['X-Accel-Redirect'] = "#{path}"
@@ -26,7 +26,7 @@ def listing_of_directory directory
   @directory = Dir.new(directory)
   @entries = @directory.entries
   @entries.sort!
-  haml :directory_listing
+  haml :directory_listing, locals:{title:"ATS LXR - "+@directory.to_path}
 end
 
 def xref_of_file path, base
@@ -75,7 +75,6 @@ end
 
 get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   @rel_path = "#{folder}/#{repo}/#{path}"
-  puts @rel_path
   raise Sinatra::NotFound if not File.exists? @rel_path
   return lxr_send_file @rel_path, false if dflag
   return listing_of_directory(@rel_path) if File.directory? @rel_path
