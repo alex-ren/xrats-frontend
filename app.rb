@@ -61,6 +61,7 @@ def make_xref folder,repo,path
     end
     base = "repos/#{repo}"
   when "ats"
+    @repos << repo if not @repos.include?(repo)
     ats_home = repo
     base = "ats/#{ats_home}"
   else
@@ -73,16 +74,23 @@ def make_xref folder,repo,path
   output
 end
 
+get '/application.js' do
+  coffee :application
+end
+
 get %r{^/(ats|repos)??/?$} do 
   haml :index
 end
 
 get "/search" do
-  content_type :json
-  $sphinx.query(params["query"],params["indexes"]).to_json
+  results = $sphinx.query(params["query"], params["indexes"])
+  haml :search_results, layout:false, locals:{results:results}
 end
 
 get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
+  @repos = [repo]
+  match = $repos.select {|name,attr| name == repo}
+  @repos << match[repo]["ats"] if !match.empty?
   @rel_path = "#{folder}/#{repo}/#{path}"
   raise Sinatra::NotFound if not File.exists? @rel_path
   return lxr_send_file @rel_path, false if dflag

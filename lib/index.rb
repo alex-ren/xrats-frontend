@@ -3,7 +3,7 @@ require 'builder/xchar'
 
 path = ARGV[0]
 
-to_process = `find -L #{path} -regextype posix-extended -regex '.*\.(dats|sats)'`.split("\n") if path
+to_process = `find -L #{path} -regextype posix-extended -regex '.*\.(cats|dats|sats|hats)'`.split("\n") if path
 
 index_id = 1
 
@@ -18,7 +18,11 @@ puts <<EOS
 EOS
 
 to_process.each do |filename|
-  contents = File.open(filename.chomp,"r").read
+  begin
+    contents = File.open(filename.chomp,"r").read
+  rescue Errno::ENOENT
+    next #skip it
+  end
   type = (filename.match(/\.dats/)) ? "dats" : "sats"
   puts <<EOS
 <sphinx:document id="#{index_id}">

@@ -13,4 +13,14 @@
   %span.header_section
     %a{:href=>"/download/#{@rel_path}",:target=>"_blank"}
       Download
+%span.search
+  Search:
+  %input#search-input{:type=>"text","data-repos"=>"#{@repos.join(" ")}"}
+  %input#search-submit{:type=>"button",:value=>"submit"}
 .cl
+#search-results
+  %h2
+    Results
+    %input#close-search{:type=>"button",:value=>"[ close ]"}
+    .cl
+  %ul#search-listing

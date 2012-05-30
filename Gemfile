@@ -8,3 +8,5 @@ gem 'builder'
 gem 'capistrano'
 gem 'riddle'
 gem 'json'
+gem 'coffee-script'
+gem 'therubyracer', :require => "v8"

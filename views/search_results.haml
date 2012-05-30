@@ -1,0 +1,8 @@
+- if !results[:total_found]
+  Sorry, no results found....
+- else
+  - results[:matches].each do |match|
+    %li
+      %a{:href=>"/"+match[:attributes]["path"]}
+        = match[:attributes]["path"]
+  %p #{results[:total_found]} matching files found.
