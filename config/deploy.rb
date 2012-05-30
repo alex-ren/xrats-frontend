@@ -24,6 +24,7 @@ server "xrats.illtyped.com", :web,:app,:db,:primary => true
 set :deploy_to, "/home/ats/lxrats"
 set :production_config_path, "#{deploy_to}/config_files"
 set :production_repos_path, "#{deploy_to}/code"
+set :production_shared_path, "#{deploy_to}/shared"
 set :branch, "master"
 
 set :use_sudo, false
@@ -33,6 +34,7 @@ namespace :deploy do
   task :copy_application_config do 
     run "cp #{production_config_path}/repos.yml #{release_path}/config/repos.yml"
     run "cp #{production_config_path}/ats.yml #{release_path}/config/ats.yml"
+    run "cp #{production_config_path}/sphinx.conf #{release_path}/config/sphinx.conf"
     run <<CMD
 rm -rf #{release_path}/repos && 
 ln -nfs #{production_repos_path}/repos #{release_path}/repos
@@ -41,7 +43,12 @@ CMD
 rm -rf #{release_path}/ats && 
 ln -nfs #{production_repos_path}/ats #{release_path}/ats
 CMD
+    run <<CMD
+rm -rf #{release_path}/data &&
+ln -nfs #{production_shared_path}/data #{release_path}/data
+CMD
   end
+  
   after "deploy:update_code","deploy:copy_application_config"
 end
 
