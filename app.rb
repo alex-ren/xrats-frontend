@@ -83,6 +83,7 @@ get %r{^/(ats|repos)??/?$} do
 end
 
 get "/search" do
+  $sphinx.offset = params["offset"] if params["offset"]
   results = $sphinx.query(params["query"], params["indexes"])
   haml :search_results, layout:false, locals:{results:results}
 end

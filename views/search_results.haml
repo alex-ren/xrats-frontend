@@ -1,8 +1,12 @@
-- if !results[:total_found]
-  Sorry, no results found....
-- else
-  - results[:matches].each do |match|
+- results[:matches].each do |match|
+  %li
+    %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
+      = match[:attributes]["path"]
+%p #{results[:total_found]} matching files found.
+%ul
+  - pages = results[:total_found] / $sphinx.limit
+  - current_page = ($sphinx.offset / $sphinx.limit) + 1
+  - for i in 1..current_page
     %li
-      %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
-        = match[:attributes]["path"]
-  %p #{results[:total_found]} matching files found.
+      %button.paginate{"data-offset"=>i*$sphinx.limit}
+        = i
