@@ -3,6 +3,6 @@
 - else
   - results[:matches].each do |match|
     %li
-      %a{:href=>"/"+match[:attributes]["path"]}
+      %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
         = match[:attributes]["path"]
   %p #{results[:total_found]} matching files found.
