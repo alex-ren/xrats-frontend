@@ -5,8 +5,8 @@
 %p #{results[:total_found]} matching files found.
 %ul
   - pages = results[:total_found] / $sphinx.limit
-  - current_page = ($sphinx.offset / $sphinx.limit) + 1
-  - for i in 1..current_page
+  - current_page = ($sphinx.offset.to_i / $sphinx.limit) + 1
+  - for i in 1..pages
     %li
       %button.paginate{"data-offset"=>i*$sphinx.limit}
         = i

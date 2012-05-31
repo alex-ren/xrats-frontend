@@ -4,13 +4,13 @@ $(document).ready ->
 search = (params) ->
   $.get(
     "/search"
-    {query:params.query,indexes:params.indexes}
+    params
     (res) ->
       $("#search-listing").html(res)
-      $('.paginate').bind "click", (event) =>
-        params.offset = $(this).attr("offset")
+      $('.paginate').bind "click", (event) ->
+        params.offset = $(this).attr("data-offset")
         search(params)
-    "html"  
+    "html"
   )
 
 setup_search = () ->
