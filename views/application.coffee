@@ -1,3 +1,4 @@
+#All the cross references dynamic code
 $(document).ready ->
   setup_search()
 
@@ -15,7 +16,7 @@ search = (params) ->
 
 trigger_search = () ->
     $("#search-results").css "display", "inline"
-    search({query:$("#search-input").attr("value"),indexes:$('#search-input').attr("data-repos")})
+    search({query:$("#search-input").attr("value"),indexes:$('#search-input').attr("data-repos"),offset:0})
 
 setup_search = () ->
   $("#search-submit").bind "click", (event) =>
