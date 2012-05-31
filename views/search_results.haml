@@ -1,12 +1,14 @@
-- results[:matches].each do |match|
-  %li
-    %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
-      = match[:attributes]["path"]
-%p #{results[:total_found]} matching files found.
 %ul
-  - pages = results[:total_found] / $sphinx.limit
-  - current_page = ($sphinx.offset.to_i / $sphinx.limit) + 1
-  - for i in 1..pages
+  - results[:matches].each do |match|
     %li
-      %button.paginate{"data-offset"=>i*$sphinx.limit}
-        = i
+      %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
+        = match[:attributes]["path"]
+%p #{results[:total_found]} matching files found.
+%ul.pagination
+  - pages = results[:total_found] / $sphinx.limit
+  - current_page = ($sphinx.offset.to_i / $sphinx.limit)
+  - for i in 0..pages
+    %li
+      - active = (i == current_page) ? "active" : ""
+      %button.paginate{"data-offset"=>i*$sphinx.limit, :class=>active}
+        = i+1

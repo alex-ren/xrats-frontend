@@ -61,6 +61,35 @@ body {
     color:#3216B0;
 }
 
+.paginate {
+    display:inline;
+    border: 0;
+    cursor: pointer;
+    background: none;
+    color:#000000;
+    border: solid 1px #000000;
+    margin-right: 2px;
+}
+
+.pagination {
+    margin-left:0;
+}
+
+.pagination li {
+    display:inline;
+    font-size:11px;
+    list-style:none;
+}
+
+.pagination .active {
+    display:inline;
+    font-weight: bold;
+}
+
+.pagination button:hover{
+    border: solid 1px #e8edf0;
+}
+
 .directory-listing {
     font-size: 16px;
 }
