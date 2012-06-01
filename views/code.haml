@@ -1,6 +1,11 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
 #code-mirror-wrapper
-  .cm-s-ambiance
-    %textarea.code-mirror#atscc_input
-      implement main () = print "Hello World!\n"
+  %textarea.code-mirror#atscc_input
+    implement main () = print "Hello World!\n"
+%h3
+  ATS Compiler Output
+  #atscc-buttons
+    %button.atscc-button{"data-action"=>"typecheck"} Typecheck
+    %button.atscc-button{"data-action"=>"compile"} Run
+#ats-console

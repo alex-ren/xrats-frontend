@@ -1,5 +1,3 @@
-# xrats - ATS Cross Reference
-# Dynamic page content.
 $(document).ready ->
   setup_search()
   setup_code_mirror()
@@ -29,17 +27,18 @@ setup_search = () ->
     if event.keyCode is 13 then trigger_search()
 
 setup_code_mirror = () ->
-  buffers = $(".code-mirror")
-  if buffers.length is 0
+  code_mirror = 0
+  buf = $(".code-mirror")
+  if buf.length is 0
     return
   jQuery.getScript "/javascripts/codemirror.js", (script,status,xhr) ->
     jQuery.getScript "/javascripts/emacs.js", () ->
-      for buf in buffers
-        CodeMirror.fromTextArea(buf,{lineNumbers:true,keyMap:"emacs"})
-
-
-
-
-
-
-
+      code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs"})
+  $('.atscc-button').bind "click", (event) ->
+    $('#ats-console').html("Waiting for the server...")
+    $.post(
+      "/atscc/#{$(this).attr('data-action')}",
+      {input:code_mirror.getValue()}
+      (res) ->
+        $("#ats-console").html("<pre>#{res.output}</pre>")
+      "json")

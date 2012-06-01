@@ -158,6 +158,17 @@ body {
     margin-top:25px;
 }
 
+#ats-console {
+    height:150px;
+    width:100%;
+    background:#FAFAFA;
+}
+
+#atscc-buttons {
+    display: inline;
+    margin-left: 25px;
+}
+
 .cm-s-blackboard { background: #0C1021; color: #F8F8F8; }
 .cm-s-blackboard .CodeMirror-selected { background: #253B76 !important; }
 .cm-s-blackboard .CodeMirror-gutter { background: #0C1021; border-right: 0; }

@@ -22,7 +22,7 @@ def lxr_send_file path, browser=true
   else
     #Let nginx send the file
     response.headers['Content-Type'] = "text/plain"
-    response.headers['Cache-Control'] = "public, max-age=3600"
+    cache_control :public, max_age:"3600"
     response.headers['X-Accel-Redirect'] = "/protected/#{path}"
   end
 end
@@ -75,13 +75,23 @@ def make_xref folder,repo,path
   output
 end
 
+post '/atscc/:action' do |action|
+  content_type :json
+  case action 
+  when "typecheck"
+    {status:0,output:"Your file is successfully typechecked!\n"}.to_json
+  when "compile"
+    {status:0,output:"Hello World!\n"}.to_json
+  end
+end
+
 get '/application.js' do
-  response.headers['Cache-Control'] = "public, max-age=86400"
+  cache_control :public, max_age:"86400"
   coffee :application
 end
 
 get %r{^/(ats|repos)??/?$} do 
-  response.headers['Cache-Control'] = "public, max-age=86400"
+  cache_control :public, max_age:"86400"
   haml :index
 end
 
@@ -90,14 +100,14 @@ get "/code" do
 end
 
 get "/search" do
-  response.headers['Cache-Control'] = "public, max-age=600"
+  cache_control :public, max_age:"600"
   $sphinx.offset = params["offset"] if params["offset"]
   results = $sphinx.query(params["query"], params["indexes"])
   haml :search_results, layout:false, locals:{results:results}
 end
 
 get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
-  response.headers['Cache-Control'] = "public, max-age=600"
+  cache_control :public, max_age:"600"
   @repos = [repo]
   match = $repos.select {|name,attr| name == repo}
   @repos << match[repo]["ats"] if !match.empty?
