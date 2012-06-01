@@ -1,6 +1,8 @@
-#All the cross references dynamic code
+# xrats - ATS Cross Reference
+# Dynamic page content.
 $(document).ready ->
   setup_search()
+  setup_code_mirror()
 
 search = (params) ->
   $.get(
@@ -25,3 +27,19 @@ setup_search = () ->
     $("#search-results").css "display", "none"
   $("#search-input").bind "keydown", (event) =>
     if event.keyCode is 13 then trigger_search()
+
+setup_code_mirror = () ->
+  buffers = $(".code-mirror")
+  if buffers.length is 0
+    return
+  jQuery.getScript "/javascripts/codemirror.js", (script,status,xhr) ->
+    jQuery.getScript "/javascripts/emacs.js", () ->
+      for buf in buffers
+        CodeMirror.fromTextArea(buf,{lineNumbers:true,keyMap:"emacs"})
+
+
+
+
+
+
+

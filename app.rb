@@ -85,6 +85,10 @@ get %r{^/(ats|repos)??/?$} do
   haml :index
 end
 
+get "/code" do
+  haml :code
+end
+
 get "/search" do
   response.headers['Cache-Control'] = "public, max-age=600"
   $sphinx.offset = params["offset"] if params["offset"]
