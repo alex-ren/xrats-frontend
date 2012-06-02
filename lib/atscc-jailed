@@ -1,20 +1,48 @@
 #!/usr/bin/perl -wT
 
+$typecheck = "";
+
+if($ARGV[0] && !($ARGV[0] =~ m#^(\-tc)$# && ($typecheck = $1) ) ) {
+  exit;
+}
+
 use POSIX;
 use BSD::Resource;
+use String::Random;
+use IO::Handle;
+
+$rand = new String::Random;
+$file_to_open = $rand->randpattern("CnccncCcnccnCCn");
+
+print $file_to_open."\n";
 
 setrlimit(RLIMIT_NPROC,12,12);
 setrlimit(RLIMIT_CPU,3,3);
+setrlimit(RLIMIT_CORE,0,0);
+setrlimit(RLIMIT_LOCKS,0,0);
+setrlimit(RLIMIT_NOFILE,25,25);
+setrlimit(RLIMIT_OFILE,25,25);
+setrlimit(RLIMIT_OPEN_MAX,25,25);
+
 
 $id = getpwnam("atscc");
 
-print $id."\n";
+#print $typecheck."\n";
+#print $id."\n";
 
 if($id == 0) { #Oh my god, how did you become root?!
   exit;
 }
 
+$source = "";
+#A security risk...
+while($line = <STDIN>) {
+  if($line =~ m#(.*)#) {
+    $source .= $1;
+  }
+}
 
+#Put the process in jail
 chdir("/opt/atscc-jail");
 chroot("/opt/atscc-jail");
 setuid($id);
@@ -22,9 +50,15 @@ setuid($id);
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
 
-alarm 3; #You got three seconds...
+alarm 3; #Might be redundant since we use setrlimit...
 
-chdir("/tmp");
+#Keep file descriptors open since a cleanup process will try to delete everything
+open(SRC, "+>", "/tmp/".$file_to_open.".dats") or die "Cannot open temporary file.";
+print SRC $source;
 
-system "/opt/ats-0.2.7/bin/atscc -o /tmp/test /tmp/test.dats";
-system "/tmp/test";
+chdir("/tmp"); #ATS need to generate code in the pwd.
+system("/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats") == 0 or exit;
+system("/tmp/$file_to_open") == 0 or exit;
+
+close(SRC);
+unlink "/tmp/$file_to_open","/tmp/$file_to_open.dats", "*.c";
