@@ -79,9 +79,21 @@ post '/atscc/:action' do |action|
   content_type :json
   case action 
   when "typecheck"
-    {status:0,output:"Your file is successfully typechecked!\n"}.to_json
+    res = ""
+    IO.popen("lib/atscc-jailed -tc","r+") do |f|
+      f.puts(params[:input])
+      f.close_write
+      res = f.read
+    end
+    {status:0,output:res}.to_json
   when "compile"
-    {status:0,output:"Hello World!\n"}.to_json
+    res = ""
+    IO.popen("lib/atscc-jailed","r+") do |f|
+      f.puts(params[:input])
+      f.close_write
+      res = f.read
+    end
+    {status:0,output:res}.to_json
   end
 end
 
