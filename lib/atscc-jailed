@@ -1,0 +1,30 @@
+#!/usr/bin/perl -wT
+
+use POSIX;
+use BSD::Resource;
+
+setrlimit(RLIMIT_NPROC,12,12);
+setrlimit(RLIMIT_CPU,3,3);
+
+$id = getpwnam("atscc");
+
+print $id."\n";
+
+if($id == 0) { #Oh my god, how did you become root?!
+  exit;
+}
+
+
+chdir("/opt/atscc-jail");
+chroot("/opt/atscc-jail");
+setuid($id);
+
+$ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
+$ENV{'ATSHOME'} = "/opt/ats-0.2.7";
+
+alarm 3; #You got three seconds...
+
+chdir("/tmp");
+
+system "/opt/ats-0.2.7/bin/atscc -o /tmp/test /tmp/test.dats";
+system "/tmp/test";
