@@ -16,6 +16,8 @@
 # 
 # sudo debootstrap --variant=buildd --arch amd64 natty /opt/atscc-jail http://mirror.anl.gov/pub/ubuntu/
 # cp -r /opt/ats-0.2.7 /opt/atscc-jail/opt/ats-0.2.7
+# sudo chmod -R o-rw /tmp
+# cp lib/safe-exec.c /opt/atscc-jail/opt/
 
 $typecheck = "";
 
@@ -28,8 +30,10 @@ use BSD::Resource;
 use String::Random;
 use IO::Handle;
 
+$chroot_jail = "/opt/atscc-jail-x86";
+
 $rand = new String::Random;
-$file_to_open = $rand->randpattern("CnccncCcnccnCCn");
+$file_to_open = $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
 
 setrlimit(RLIMIT_NPROC,12,12);
 setrlimit(RLIMIT_CPU,3,3);
@@ -39,13 +43,13 @@ setrlimit(RLIMIT_NOFILE,25,25);
 setrlimit(RLIMIT_OFILE,25,25);
 setrlimit(RLIMIT_OPEN_MAX,25,25);
 
-
-$id = getpwnam("atscc");
+($_,$_,$uid,$gid) = getpwnam("nobody")
+        or die "atscc not in passwd file";
 
 #print $typecheck."\n";
 #print $id."\n";
 
-if($id == 0) { #Oh my god, how did you become root?!
+if($gid == 0 || $uid == 0) { #Oh my god, how did you become root?!
   exit;
 }
 
@@ -57,25 +61,39 @@ while($line = <STDIN>) {
   }
 }
 
+@files = ("$file_to_open.dats",$file_to_open."_dats.c", $file_to_open);
+
+foreach $fn (@files) {
+	open(SRC,"+>","$chroot_jail/tmp/$fn") or die;
+	close(SRC);
+}
+
+chdir("$chroot_jail/tmp");
+
+chown $uid, $gid, @files;
+
 #Put the process in jail
-chdir("/opt/atscc-jail");
-chroot("/opt/atscc-jail");
-setuid($id);
+chdir($chroot_jail);
+chroot($chroot_jail);
+setuid($uid);
+setgid($gid);
 
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
 
-alarm 3; #Might be redundant since we use setrlimit...
+$SIG{ALRM} = sub { kill 9, getpid() };
 
-#Keep file descriptors open since a cleanup process will try to delete everything
+alarm 3; #Probably redundant...
+
 open(SRC, "+>", "/tmp/".$file_to_open.".dats") or die "Cannot open temporary file.";
 print SRC $source;
+close(SRC);
 
 chdir("/tmp"); #ATS needs to generate code in the pwd.
-system("/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats") == 0 or exit;
-if(!$typecheck) {
-  system("/tmp/$file_to_open") == 0 or exit;
+$comp_passed = system("/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats") == 0;
+
+if($comp_passed && !$typecheck) {
+    system "/opt/safe-exec /tmp/$file_to_open";
 }
 
-close(SRC);
-unlink "/tmp/$file_to_open","/tmp/$file_to_open.dats", "*.c";
+unlink @files;
