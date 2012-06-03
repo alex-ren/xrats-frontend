@@ -29,6 +29,7 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_vfork:
     kill_child("SYS_(v)fork and SYS_clone are not permitted.",child);
     break;
+  case SYS_set_thread_area:
   case SYS_ipc:
     kill_child("IPC not permitted.",child);
     break;
@@ -38,7 +39,7 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_ptrace:
     kill_child("SYS_ptrace is not permitted.",child);
   default:
-    //all's well
+    //fprintf(stderr,"%lu\n",call);
   }
 }
 
