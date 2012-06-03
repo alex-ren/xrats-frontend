@@ -12,14 +12,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 void die(char *msg) {
   fprintf(stderr,"%s\n",msg);
   exit(1);
 }
 
+
 inline kill_child(char *error, int child) {
   ptrace(PTRACE_KILL,child,0,0);
   die(error);
+}
+
+static void (*catch_exec)(int);
+
+inline void exec_exn(int child) {
+  kill_child("SYS_execve is not permitted",child);
+  return;
+}
+
+inline void initial_exec(int child) {
+  catch_exec = exec_exn;
 }
 
 inline void verify_syscall(int child, unsigned long call) {
@@ -29,7 +42,7 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_vfork:
     kill_child("SYS_(v)fork and SYS_clone are not permitted.",child);
     break;
-  case SYS_set_thread_area:
+  case SYS_futex:
   case SYS_ipc:
     kill_child("IPC not permitted.",child);
     break;
@@ -38,8 +51,14 @@ inline void verify_syscall(int child, unsigned long call) {
     break;
   case SYS_ptrace:
     kill_child("SYS_ptrace is not permitted.",child);
+    break;
+  case SYS_chmod:
+    kill_child("SYS_chmod is not permitted.",child);
+    break;
+  case SYS_execve:
+    catch_exec(child);
   default:
-    //fprintf(stderr,"%lu\n",call);
+    fprintf(stderr,"%lu\n",call);
   }
 }
 
@@ -63,6 +82,8 @@ int main (int argc, char *argv[])  {
   if(argc != 2) {
     die("Please provide a binary file to run.");
   }
+
+  catch_exec = initial_exec;
   char *exec_arg[2] = {argv[1],NULL};
   if( ( pid = fork() ) > 0 ) {
     patrol_syscalls(pid);
