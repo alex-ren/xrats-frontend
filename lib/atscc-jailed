@@ -3,7 +3,6 @@
 # Notes on chroot setup
 # apt-get install dchroot debootstrap
 # mkdir /opt/atscc-jail
-# adduser atscc
 #
 # Add the following to /etc/schroot.conf
 #  [natty]
@@ -14,10 +13,10 @@
 #  groups=sbuild
 #  root-groups=root
 # 
-# sudo debootstrap --variant=buildd --arch amd64 natty /opt/atscc-jail http://mirror.anl.gov/pub/ubuntu/
+# sudo debootstrap --variant=buildd --arch i386 natty /opt/atscc-jail http://mirror.anl.gov/pub/ubuntu/
 # cp -r /opt/ats-0.2.7 /opt/atscc-jail/opt/ats-0.2.7
 # sudo chmod -R o-rw /tmp
-# cp lib/safe-exec.c /opt/atscc-jail/opt/
+# cp lib/safe-exec /opt/atscc-jail/opt/
 
 $typecheck = "";
 
@@ -35,22 +34,25 @@ $chroot_jail = "/opt/atscc-jail-x86";
 $rand = new String::Random;
 $file_to_open = $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
 
-setrlimit(RLIMIT_NPROC,12,12);
-setrlimit(RLIMIT_CPU,3,3);
+setrlimit(RLIMIT_NPROC,10,10);
+setrlimit(RLIMIT_CPU,1,2);
 setrlimit(RLIMIT_CORE,0,0);
 setrlimit(RLIMIT_LOCKS,0,0);
 setrlimit(RLIMIT_NOFILE,25,25);
 setrlimit(RLIMIT_OFILE,25,25);
 setrlimit(RLIMIT_OPEN_MAX,25,25);
+setrlimit(RLIMIT_FSIZE,100000,150000);
+
+setpriority(PRIO_PROCESS,PRIO_MAX);
 
 ($_,$_,$uid,$gid) = getpwnam("nobody")
-        or die "atscc not in passwd file";
+        or die "failed getting user nobody";
 
 #print $typecheck."\n";
 #print $id."\n";
 
 if($gid == 0 || $uid == 0) { #Oh my god, how did you become root?!
-  exit;
+  die "gid and uid not set";
 }
 
 $source = "";
@@ -81,19 +83,58 @@ setgid($gid);
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
 
-$SIG{ALRM} = sub { kill 9, getpid() };
-
-alarm 3; #Probably redundant...
-
 open(SRC, "+>", "/tmp/".$file_to_open.".dats") or die "Cannot open temporary file.";
 print SRC $source;
 close(SRC);
 
 chdir("/tmp"); #ATS needs to generate code in the pwd.
-$comp_passed = system("/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats") == 0;
+$compile_cmd = "/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats";
 
-if($comp_passed && !$typecheck) {
-    system "/opt/safe-exec /tmp/$file_to_open";
+pipe CCRD, CCWR;
+
+if ( ( $pid = fork() )  > 0 ) {
+  close(CCWR);
+  wait();
+} elsif ( $pid == 0 ) {
+  close(CCRD);
+  open(STDERR,">&CCWR");
+  open(STDOUT,">","/dev/null");
+  exec $compile_cmd or die "Couldn't run compiler..";
+} else {
+  die "Couldn't run compiler...";
 }
 
-unlink @files;
+$success = !$?;
+
+if(!$success) {
+  print "Error:\n";
+  while($line = <CCRD>) {
+	print $line;
+  }
+}
+
+alarm 2;
+
+#Make sure we can't write to these files.
+chmod 0555, @files;
+
+if($success) {
+   if($typecheck) {
+      print "Your code has been successfully typechecked!\n";
+   } else {
+      setrlimit(RLIMIT_STACK,1048576,1048576);
+      setrlimit(RLIMIT_VMEM,2048576,2048576);
+      system "/opt/safe-exec /tmp/$file_to_open";
+   }
+}
+
+#Go back and mark for deletion
+chdir("/tmp");
+chmod 0755, @files;
+
+#mark for deletion
+foreach $file (@files) {
+  open(REAP,"+>",$file);
+  print REAP "reap";
+  close(REAP);
+}

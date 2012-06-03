@@ -42,23 +42,34 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_vfork:
     kill_child("SYS_(v)fork and SYS_clone are not permitted.",child);
     break;
+  case SYS_sigaltstack:
+  case SYS_kill:
   case SYS_futex:
   case SYS_ipc:
-    kill_child("IPC not permitted.",child);
+    kill_child("IPC is not permitted.",child);
     break;
   case SYS_ioctl:
     kill_child("SYS_ioctl is not permitted.",child);
     break;
+  case SYS_restart_syscall:
   case SYS_ptrace:
     kill_child("SYS_ptrace is not permitted.",child);
     break;
+  case SYS_fchmod:
+  case SYS_fchmodat:
   case SYS_chmod:
-    kill_child("SYS_chmod is not permitted.",child);
+    kill_child("chmod operations are not permitted.",child);
     break;
+  case SYS_creat:
+    kill_child("SYS_creat is not permitted.",child);
+  case SYS_syslog:
+    kill_child("SYS_syslog is not permitted.",child);
   case SYS_execve:
     catch_exec(child);
+    break;
   default:
-    fprintf(stderr,"%lu\n",call);
+    //fprintf(stderr,"%lu\n",call);
+    break;
   }
 }
 
@@ -79,15 +90,16 @@ void patrol_syscalls(int child) {
 int main (int argc, char *argv[])  {
   int pid;
   int status;
+  int nfd;
   if(argc != 2) {
     die("Please provide a binary file to run.");
   }
-
   catch_exec = initial_exec;
   char *exec_arg[2] = {argv[1],NULL};
   if( ( pid = fork() ) > 0 ) {
     patrol_syscalls(pid);
   } else if (pid == 0) {
+    dup2(STDOUT_FILENO,STDOUT_FILENO);
     ptrace(PTRACE_TRACEME,0,0,0);
     if(execvp(exec_arg[0],exec_arg)) {
       perror("exec failed");
