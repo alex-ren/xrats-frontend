@@ -30,7 +30,7 @@ inline void verify_syscall(int child, unsigned long call) {
     kill_child("SYS_(v)fork and SYS_clone are not permitted.",child);
     break;
   case SYS_ipc:
-    kill_child("Shared Memory operations are not permitted.",child);
+    kill_child("IPC not permitted.",child);
     break;
   case SYS_ioctl:
     kill_child("SYS_ioctl is not permitted.",child);
