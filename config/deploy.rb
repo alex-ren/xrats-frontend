@@ -47,6 +47,7 @@ CMD
 rm -rf #{release_path}/data &&
 ln -nfs #{production_shared_path}/data #{release_path}/data
 CMD
+    try_sudo "#{prodcution_shared_path}/setup-atscc-jailed"
   end
   
   after "deploy:update_code","deploy:copy_application_config"
