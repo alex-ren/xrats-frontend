@@ -3,6 +3,7 @@ require 'sinatra'
 require 'yaml'
 require 'json'
 require 'riddle'
+require 'open4'
 
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
@@ -77,24 +78,25 @@ end
 
 post '/atscc/:action' do |action|
   content_type :json
+  res = ""
+  flags = []
   case action 
   when "typecheck"
-    res = ""
-    IO.popen("lib/atscc-jailed -tc","r+") do |f|
-      f.puts(params[:input])
-      f.close_write
-      res = f.read
-    end
-    {status:0,output:res}.to_json
+    flags << "-tc"
   when "compile"
-    res = ""
-    IO.popen("lib/atscc-jailed","r+") do |f|
-      f.puts(params[:input])
-      f.close_write
-      res = f.read
-    end
-    {status:0,output:res}.to_json
+    nil
+  else
+    raise Sinatra::NotFound
   end
+  status = Open4::popen4("lib/atscc-jailed #{flags.join(" ")}") do |pid,stdin,stdout,stderr|
+    stdin.puts(params[:input])
+    stdin.close
+    res = stdout.read
+  end
+  if status.to_i != 0 
+    res = "Execution Halted or Internal Error"
+  end
+  {status:status.to_i,output:res}.to_json
 end
 
 get '/application.js' do

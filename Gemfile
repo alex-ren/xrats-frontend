@@ -10,3 +10,4 @@ gem 'riddle'
 gem 'json'
 gem 'coffee-script'
 gem 'therubyracer', :require => "v8"
+gem 'open4'

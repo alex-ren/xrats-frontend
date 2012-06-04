@@ -138,3 +138,5 @@ foreach $file (@files) {
   print REAP "reap";
   close(REAP);
 }
+
+exit(0);
