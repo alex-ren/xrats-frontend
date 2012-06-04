@@ -29,7 +29,7 @@ use BSD::Resource;
 use String::Random;
 use IO::Handle;
 
-$chroot_jail = "/opt/atscc-jail-x86";
+$chroot_jail = "/opt/atscc-jail";
 
 $rand = new String::Random;
 $file_to_open = $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
