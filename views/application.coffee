@@ -26,8 +26,20 @@ setup_search = () ->
   $("#search-input").bind "keydown", (event) =>
     if event.keyCode is 13 then trigger_search()
 
+code_mirror = 0
+
+compile_code = (action) ->
+  $('#ats-console').html("Waiting for the server...")
+  $.post(
+    "/atscc/#{action}",
+    {input:code_mirror.getValue()}
+    (res) ->
+      $("#ats-console").html("<pre>#{res.output}</pre>")
+    "json")
+
+this.compile_code = compile_code
+
 setup_code_mirror = () ->
-  code_mirror = 0
   buf = $(".code-mirror")
   if buf.length is 0
     return
@@ -35,10 +47,4 @@ setup_code_mirror = () ->
     jQuery.getScript "/javascripts/emacs.js", () ->
       code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs"})
   $('.atscc-button').bind "click", (event) ->
-    $('#ats-console').html("Waiting for the server...")
-    $.post(
-      "/atscc/#{$(this).attr('data-action')}",
-      {input:code_mirror.getValue()}
-      (res) ->
-        $("#ats-console").html("<pre>#{res.output}</pre>")
-      "json")
+    compile_code($(this).attr('data-action'))

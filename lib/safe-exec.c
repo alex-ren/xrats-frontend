@@ -64,6 +64,9 @@ inline void verify_syscall(int child, unsigned long call) {
     kill_child("SYS_creat is not permitted.",child);
   case SYS_syslog:
     kill_child("SYS_syslog is not permitted.",child);
+  case SYS_chdir:
+    kill_child("SYS_chdir is not permitted.",child);
+    break;
   case SYS_execve:
     catch_exec(child);
     break;
