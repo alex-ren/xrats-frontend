@@ -14,7 +14,7 @@
 
 
 void die(char *msg) {
-  fprintf(stderr,"%s\n",msg);
+  printf(stdout,"%s\n",msg);
   exit(1);
 }
 
