@@ -27,8 +27,6 @@ set :production_repos_path, "#{deploy_to}/code"
 set :production_shared_path, "#{deploy_to}/shared"
 set :branch, "master"
 
-
-
 namespace :deploy do
   desc "Drop in the server's config files and repositories."
   task :copy_application_config do 
@@ -48,9 +46,10 @@ rm -rf #{release_path}/data &&
 ln -nfs #{production_shared_path}/data #{release_path}/data
 CMD
 
-#set :use_sudo, true
-#    run "#{try_sudo} #{production_shared_path}/setup-atscc-jailed"
-#set :use_sudo, false
+set :use_sudo, true
+    release_name = File.basename(release_path)
+    run "#{try_sudo} #{production_shared_path}/setup-atscc-jailed #{release_name}"
+set :use_sudo, false
   end
   
   after "deploy:update_code","deploy:copy_application_config"
