@@ -60,7 +60,7 @@ inline void verify_syscall(int child, unsigned long call) {
     kill_child("chmod operations are not permitted.",child);
     break;
   case SYS_creat:
-    kill_child("SYS_creat is not permitted.",child);
+    kill_child("No file operations are permitted.",child);
   case SYS_syslog:
     kill_child("SYS_syslog is not permitted.",child);
   case SYS_chdir:

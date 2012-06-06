@@ -99,7 +99,7 @@ post '/atscc/:action' do |action|
     res = stdout.read
   end
   if status.to_i != 0 
-    res ||= "Killed"
+    res = "Killed" if res.empty?
   end
   {status:status.to_i,output:res}.to_json
 end
