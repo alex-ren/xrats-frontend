@@ -77,8 +77,9 @@ chown $uid, $gid, @files;
 #Put the process in jail
 chdir($chroot_jail);
 chroot($chroot_jail);
-setuid($uid);
 setgid($gid);
+setuid($uid);
+setuid(0);
 
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
