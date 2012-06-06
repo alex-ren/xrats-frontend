@@ -21,6 +21,8 @@ set :deploy_via, :remote_cache
 set :user, "ats"
 server "xrats.illtyped.com", :web,:app,:db,:primary => true
 
+set :use_sudo, false
+
 set :deploy_to, "/home/ats/lxrats"
 set :production_config_path, "#{deploy_to}/config_files"
 set :production_repos_path, "#{deploy_to}/code"
