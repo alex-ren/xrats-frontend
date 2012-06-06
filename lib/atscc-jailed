@@ -25,6 +25,7 @@ if($ARGV[0] && !($ARGV[0] =~ m#^(\-tc)$# && ($typecheck = $1) ) ) {
 }
 
 use POSIX;
+use Privileges::Drop;
 use BSD::Resource;
 use String::Random;
 use IO::Handle;
@@ -77,9 +78,7 @@ chown $uid, $gid, @files;
 #Put the process in jail
 chdir($chroot_jail);
 chroot($chroot_jail);
-setgid($gid);
-setuid($uid);
-setuid(0);
+drop_privileges('nobody');
 
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
