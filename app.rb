@@ -94,7 +94,7 @@ post '/atscc/:action' do |action|
     res = stdout.read
   end
   if status.to_i != 0 
-    res = "Execution Halted or Internal Error"
+    res ||= "Killed"
   end
   {status:status.to_i,output:res}.to_json
 end
