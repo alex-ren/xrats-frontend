@@ -51,7 +51,6 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_ioctl:
     kill_child("SYS_ioctl is not permitted.",child);
     break;
-  case SYS_restart_syscall:
   case SYS_ptrace:
     kill_child("SYS_ptrace is not permitted.",child);
     break;

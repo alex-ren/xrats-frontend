@@ -10,6 +10,8 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
+enable :sessions
+
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
     str.gsub!(pattern,replace)
@@ -85,6 +87,9 @@ post '/atscc/:action' do |action|
     flags << "-tc"
   when "compile"
     nil
+  when "save"
+    session[:save_code] = params[:input]
+    return {status:0}.to_json
   else
     raise Sinatra::NotFound
   end
@@ -104,7 +109,7 @@ get '/application.js' do
   coffee :application
 end
 
-get %r{^/(ats|repos)??/?$} do 
+get %r{^/(ats|repos)??/?$} do
   cache_control :public, max_age:"86400"
   haml :index
 end
