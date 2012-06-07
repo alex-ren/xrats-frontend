@@ -15,7 +15,7 @@
 # 
 # sudo debootstrap --variant=buildd --arch i386 natty /opt/atscc-jail http://mirror.anl.gov/pub/ubuntu/
 # cp -r /opt/ats-0.2.7 /opt/atscc-jail/opt/ats-0.2.7
-# sudo chmod -R o-rw /tmp
+# cp -r /opt/postiats /opt/atscc-jail/opt/postiats
 # cp lib/safe-exec /opt/atscc-jail/opt/
 
 use POSIX;
@@ -66,7 +66,7 @@ sub random_string {
     return $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
 }
 
-# fork and exec a command, only displaying errors if it exists with 
+# fork and exec a command, only displaying errors if it exits with 
 # a non-zero status.
 sub fork_and_exec {
     local($cmd) = ($_[0]);
@@ -78,7 +78,7 @@ sub fork_and_exec {
     if ( $pid > 0 ) {
         close(CCWR);
         wait();
-    } elsif ( $pid == 0 ) {
+    } else {
         close(CCRD);
         open(STDERR,">&CCWR");
         open(STDOUT,">","/dev/null");
@@ -129,7 +129,7 @@ sub compile_patsopt {
     $ENV{'PATSHOME'} = "/opt/postiats";
     $compile_cmd = $options->{"path"}." ".$options->{"flags"}." --dynamic /tmp/$filename.dats";
     if( fork_and_exec($compile_cmd) ) {
-	print "Your code has been successfully typecheck!";
+	print "Your code has been successfully typechecked!";
     }
     return ($filename);
 }
@@ -150,9 +150,7 @@ $typecheck="";
 
 GetOptions('tc'=>\$typecheck, 'compiler=s'=>\$compiler_selected);
 
-if(!($compiler = $compilers{$compiler_selected})) {
-    die "Invalid compiler given";
-}
+die "Invalid compiler given" unless $compiler = $compilers{$compiler_selected};
 
 $options = $compiler->{"options"};
 
@@ -166,7 +164,7 @@ $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/us
 @files = $compiler->{"compile"}->($options);
 
 chdir("/tmp");
-#mark generated files for deletion
+
 unlink @files;
 
 exit(0);
