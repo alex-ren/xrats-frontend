@@ -101,6 +101,7 @@ post '/:compiler/:action' do |compiler,action|
     stdin.close
     res = stdout.read
   end
+  puts "Status is #{status.to_i}"
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
