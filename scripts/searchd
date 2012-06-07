@@ -1,0 +1,25 @@
+#!/bin/bash
+#Add to /etc/init.d
+set -e
+
+APP_ROOT=/home/ats/lxrats/current
+PID=$APP_ROOT/tmp/pids/searchd.pid
+
+CMD="cd $APP_ROOT; searchd -c config/sphinx.conf"
+action="$1"
+set -u
+
+cd $APP_ROOT || exit 1
+
+case $action in
+start)
+  su - ats -c "$CMD"
+  ;;
+stop)
+  su - ats -c "$CMD --stop"
+  ;;
+*)
+  echo >&2 "Usage: $0 <start|stop>"
+  exit 1
+  ;;
+esac
