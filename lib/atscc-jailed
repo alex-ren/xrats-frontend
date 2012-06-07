@@ -24,36 +24,7 @@ use String::Random;
 use IO::Handle;
 use Getopt::Long;
 
-@compilers = ("/opt/ats-0.2.7/bin/atscc","/opt/postiats/bin/patsopt");
-
-$compiler = "";
-$compiler_selected = "";
-$typecheck = "";
-
-GetOptions('tc'=>\$typecheck, 'compiler=s'=>\$compiler_selected);
-
-$typecheck = "-tc" if $typecheck;
-
-
-foreach $comp (@compilers) {
-  if($comp eq $compiler_selected) {
-    $compiler = $comp;
-  }
-}
-
-if(!$compiler) {
-  die "Invalid compiler given";
-}
-
-print $compiler."\n";
-print $typecheck."\n";
-
-exit;
-
 $chroot_jail = "/opt/atscc-jail";
-
-$rand = new String::Random;
-$file_to_open = $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
 
 setrlimit(RLIMIT_CPU,1,2);
 setrlimit(RLIMIT_CORE,0,0);
@@ -66,35 +37,13 @@ setrlimit(RLIMIT_FSIZE,100000,150000);
 setpriority(PRIO_PROCESS,PRIO_MAX);
 
 ($_,$_,$uid,$gid) = getpwnam("nobody")
-        or die "failed getting user nobody";
-
-#print $typecheck."\n";
-#print $id."\n";
+    or die "failed getting user nobody";
 
 if($gid == 0 || $uid == 0) { #Oh my god, how did you become root?!
-  die "gid and uid not set";
+    die "gid and uid not set";
 }
 
-$source = "";
-
-while($line = <STDIN>) {
-  if($line =~ m#(.*)#) {
-    $source .= $1."\n";
-  }
-}
-
-@files = ("$file_to_open.dats",$file_to_open."_dats.c", $file_to_open);
-
-foreach $fn (@files) {
-	open(SRC,"+>","$chroot_jail/tmp/$fn") or die;
-	close(SRC);
-}
-
-chdir("$chroot_jail/tmp");
-
-chown $uid, $gid, @files;
-
-#Put the process in jail
+#Put the process in jail and drop permissions.
 chdir($chroot_jail);
 chroot($chroot_jail);
 $< = $uid;
@@ -102,64 +51,122 @@ $> = $uid;
 $( = $gid;
 $) = $gid;
 
+sub file_of_stdin {
+    local($filename) = ($_[0]);
+    open(SOURCE,"+>","/tmp/".$filename) 
+	or die "Cannot create tmp file";
+    while($line = <STDIN>) {
+        print SOURCE $line;
+    }
+    close(SOURCE);
+}
+
+sub random_string {
+    $rand = new String::Random;
+    return $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
+}
+
+# fork and exec a command, only displaying errors if it exists with 
+# a non-zero status.
+sub fork_and_exec {
+    local($cmd) = ($_[0]);
+    pipe CCRD, CCWR;
+    
+    $pid = fork();
+    die "Couldn't fork" unless defined $pid;
+    
+    if ( $pid > 0 ) {
+        close(CCWR);
+        wait();
+    } elsif ( $pid == 0 ) {
+        close(CCRD);
+        open(STDERR,">&CCWR");
+        open(STDOUT,">","/dev/null");
+        exec $cmd or die "Couldn't run compiler..";
+    }
+    $success = !$?;
+
+    if(!$success) {
+        print "Error:\n";
+        while($line = <CCRD>) {
+            print $line;
+        }
+    }
+    return $success;
+}
+
+sub compile_ats {
+    local($options) = ($_[0]);
+    $filename = random_string();
+    file_of_stdin($filename.".dats");
+    @files = ("$filename.dats", $filename."_dats.c", $filename);
+    $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
+    chdir("/tmp"); #ATS needs to generate code in the pwd.
+    $compile_cmd = $options->{"path"}." ".$options->{"flags"}." -o /tmp/$filename /tmp/$filename.dats";
+
+    $success = fork_and_exec($compile_cmd);
+
+    if($success) {
+        if($options->{"typecheck"}) {
+            print "Your code has been successfully typechecked!\n";
+        } else {
+            #Make sure we can't write to these files.
+            chmod 0555, @files;
+            setrlimit(RLIMIT_STACK,1048576,1048576);
+            setrlimit(RLIMIT_VMEM,2048576,2048576);
+            system "/opt/safe-exec /tmp/$filename";
+            chdir("/tmp");
+            chmod 0755, @files;
+        }
+    }
+    return @files;
+}
+
+sub compile_patsopt {
+    local($options) = ($_[0]);
+    $filename = random_string();
+    file_of_stdin($filename.".dats");
+    $ENV{'PATSHOME'} = "/opt/postiats";
+    $compile_cmd = $options->{"path"}." ".$options->{"flags"}." --dynamic /tmp/$filename.dats";
+    if( fork_and_exec($compile_cmd) ) {
+	print "Your code has been successfully typecheck!";
+    }
+    return ($filename);
+}
+
+%compilers = ("ats"=>
+              {"options"=>
+               {"path"=>"/opt/ats-0.2.7/bin/atscc","flags"=>""}
+               ,"compile"=>\&compile_ats
+              },
+              "patsopt"=>
+              {"options"=>
+              {"path"=>"/opt/postiats/bin/patsopt","flags"=>""}
+              ,"compile"=>\&compile_patsopt
+              });
+
+$compiler_selected="";
+$typecheck="";
+
+GetOptions('tc'=>\$typecheck, 'compiler=s'=>\$compiler_selected);
+
+if(!($compiler = $compilers{$compiler_selected})) {
+    die "Invalid compiler given";
+}
+
+$options = $compiler->{"options"};
+
+if($typecheck) {
+    $options->{"flags"} .= " -tc";
+    $options->{"typecheck"} = 1;
+}
+
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
-$ENV{'ATSHOME'} = "/opt/ats-0.2.7";
 
-open(SRC, "+>", "/tmp/".$file_to_open.".dats") or die "Cannot open temporary file.";
-print SRC $source;
-close(SRC);
+@files = $compiler->{"compile"}->($options);
 
-chdir("/tmp"); #ATS needs to generate code in the pwd.
-$compile_cmd = "$compiler $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats";
-
-pipe CCRD, CCWR;
-
-$pid = fork();
-die "Couldn't fork" unless defined $pid;
-
-if ( $pid > 0 ) {
-  close(CCWR);
-  wait();
-} elsif ( $pid == 0 ) {
-  close(CCRD);
-  open(STDERR,">&CCWR");
-  open(STDOUT,">","/dev/null");
-  exec $compile_cmd or die "Couldn't run compiler..";
-}
-
-$success = !$?;
-
-if(!$success) {
-  print "Error:\n";
-  while($line = <CCRD>) {
-	print $line;
-  }
-}
-
-alarm 2;
-
-#Make sure we can't write to these files.
-chmod 0555, @files;
-
-if($success) {
-   if($typecheck) {
-      print "Your code has been successfully typechecked!\n";
-   } else {
-      setrlimit(RLIMIT_STACK,1048576,1048576);
-      setrlimit(RLIMIT_VMEM,2048576,2048576);
-      system "/opt/safe-exec /tmp/$file_to_open";
-   }
-}
-
-#Go back and mark for deletion
 chdir("/tmp");
-chmod 0755, @files;
-
-#mark for deletion
-foreach $file (@files) {
-  open(REAP,"+>",$file);
-  print REAP "reap";
-  close(REAP);
-}
+#mark generated files for deletion
+unlink @files;
 
 exit(0);
