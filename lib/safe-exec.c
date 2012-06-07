@@ -101,7 +101,7 @@ int main (int argc, char *argv[])  {
   if( ( pid = fork() ) > 0 ) {
     patrol_syscalls(pid);
   } else if (pid == 0) {
-    dup2(STDOUT_FILENO,STDOUT_FILENO);
+    dup2(STDOUT_FILENO,STDERR_FILENO);
     ptrace(PTRACE_TRACEME,0,0,0);
     if(execvp(exec_arg[0],exec_arg)) {
       perror("exec failed");

@@ -9,10 +9,14 @@ cd /opt/ats028 && make
 export ATSHOME=/opt/ats028
 export ATSHOMERELOC=ATS-0.2.8
 
-cd /opt/postiats
+POSTIATS=/opt/postiats
 
-make -f src/Makefile cleanall
-make -f src/Makefile
+cd $POSTIATS/src
+
+make cleanall
+make
+
+cd $POSTIATS
 
 cp src/patsopt bin/
 

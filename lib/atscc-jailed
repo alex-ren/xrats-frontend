@@ -18,16 +18,37 @@
 # sudo chmod -R o-rw /tmp
 # cp lib/safe-exec /opt/atscc-jail/opt/
 
-$typecheck = "";
-
-if($ARGV[0] && !($ARGV[0] =~ m#^(\-tc)$# && ($typecheck = $1) ) ) {
-  exit;
-}
-
 use POSIX;
 use BSD::Resource;
 use String::Random;
 use IO::Handle;
+use Getopt::Long;
+
+@compilers = ("/opt/ats-0.2.7/bin/atscc","/opt/postiats/bin/patsopt");
+
+$compiler = "";
+$compiler_selected = "";
+$typecheck = "";
+
+GetOptions('tc'=>\$typecheck, 'compiler=s'=>\$compiler_selected);
+
+$typecheck = "-tc" if $typecheck;
+
+
+foreach $comp (@compilers) {
+  if($comp eq $compiler_selected) {
+    $compiler = $comp;
+  }
+}
+
+if(!$compiler) {
+  die "Invalid compiler given";
+}
+
+print $compiler."\n";
+print $typecheck."\n";
+
+exit;
 
 $chroot_jail = "/opt/atscc-jail";
 
@@ -89,7 +110,7 @@ print SRC $source;
 close(SRC);
 
 chdir("/tmp"); #ATS needs to generate code in the pwd.
-$compile_cmd = "/opt/ats-0.2.7/bin/atscc $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats";
+$compile_cmd = "$compiler $typecheck -o /tmp/$file_to_open /tmp/$file_to_open.dats";
 
 pipe CCRD, CCWR;
 

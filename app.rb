@@ -78,27 +78,36 @@ def make_xref folder,repo,path
   output
 end
 
-post '/atscc/:action' do |action|
+post '/:compiler/:action' do |compiler,action|
   content_type :json
   res = ""
+  compiler = nil
   flags = []
   case action 
   when "typecheck"
-    flags << "-tc"
+    flags << "--tc"
   when "compile"
-    nil
+    compiler = case compiler
+               when "atscc"
+                 "/opt/ats-0.2.7/bin/atscc"
+               when "postiats"
+                 "/opt/postiats/bin/patsopt"
+               else 
+                 raise Sinatra::NotFound
+               end
   when "save"
     session[:save_code] = params[:input]
     return {status:0}.to_json
   else
     raise Sinatra::NotFound
   end
-  status = Open4::popen4("lib/atscc-jailed #{flags.join(" ")}") do |pid,stdin,stdout,stderr|
+  jailed_command = "lib/atscc-jailed #{compiler} #{flags.join(" ")}"
+  status = Open4::popen4(command) do |pid,stdin,stdout,stderr|
     stdin.puts(params[:input])
     stdin.close
     res = stdout.read
   end
-  if status.to_i != 0 
+  if status.to_i != 0
     res = "Killed" if res.empty?
   end
   {status:status.to_i,output:res}.to_json
