@@ -48,10 +48,8 @@ rm -rf #{release_path}/data &&
 ln -nfs #{production_shared_path}/data #{release_path}/data
 CMD
 
-set :use_sudo, true
     release_name = File.basename(release_path)
-    run "#{try_sudo} #{production_shared_path}/setup-atscc-jailed #{release_name}"
-set :use_sudo, false
+    sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
   end
   
   after "deploy:update_code","deploy:copy_application_config"
@@ -61,16 +59,16 @@ set :unicorn_pid, "#{current_path}/tmp/pids/unicorn.#{application}.pid"
 namespace :deploy do
   desc "Restart unicorn"
   task :restart, :except => { :no_release => true } do
-    run "if [ -e #{unicorn_pid} ]; then kill -s USR2 `cat #{unicorn_pid}`; fi"
+    sudo "/etc/init.d/unicorn restart"
   end
 
   desc "Start unicorn"
   task :start, :except => { :no_release => true } do
-    run "cd #{current_path}; UNICORN_ENV=production bundle exec unicorn -c #{current_path}/config/unicorn.rb -D"
+    sudo "/etc/init.d/unicorn start"
   end
 
   desc "Stop unicorn"
   task :stop, :except => { :no_release => true } do
-    run "if [ -e #{unicorn_pid} ]; then kill -s QUIT `cat #{unicorn_pid}`; fi; rm #{unicorn_pid}"
+    sudo "/etc/init.d/unicorn stop"
   end
 end
