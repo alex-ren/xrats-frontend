@@ -1,0 +1,1 @@
+implement main () = print "Hello World!"

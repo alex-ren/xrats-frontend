@@ -4,6 +4,7 @@ require 'yaml'
 require 'json'
 require 'riddle'
 require 'open4'
+require 'shellwords'
 
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
@@ -81,28 +82,21 @@ end
 post '/:compiler/:action' do |compiler,action|
   content_type :json
   res = ""
-  compiler = nil
+  compiler = Shellwords.escape(compiler)
   flags = []
   case action 
   when "typecheck"
     flags << "--tc"
   when "compile"
-    compiler = case compiler
-               when "atscc"
-                 "/opt/ats-0.2.7/bin/atscc"
-               when "postiats"
-                 "/opt/postiats/bin/patsopt"
-               else 
-                 raise Sinatra::NotFound
-               end
+    nil
   when "save"
     session[:save_code] = params[:input]
     return {status:0}.to_json
   else
     raise Sinatra::NotFound
   end
-  jailed_command = "lib/atscc-jailed #{compiler} #{flags.join(" ")}"
-  status = Open4::popen4(command) do |pid,stdin,stdout,stderr|
+  jailed_command = "lib/atscc-jailed --compiler #{compiler} #{flags.join(" ")}"
+  status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
     stdin.puts(params[:input])
     stdin.close
     res = stdout.read
@@ -123,8 +117,23 @@ get %r{^/(ats|repos)??/?$} do
   haml :index
 end
 
-get "/code" do
-  haml :code
+get "/code/:compiler" do |compiler|
+  actions = []
+  canned = ""
+  title = ""
+  case compiler 
+  when "ats"
+    title = "ATS"
+    canned = open("config/helloworld.dats").read()
+    actions = ["typecheck","compile"]
+  when "patsopt"
+    title = "ATS2"
+    canned = open("config/fibonacci.dats").read()
+    actions = ["typecheck"]
+  else 
+    raise Sinatra::NotFound
+  end
+  haml :code, locals:{compiler:compiler,actions:actions,canned:canned,title:title}
 end
 
 get "/search" do

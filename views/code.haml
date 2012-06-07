@@ -2,11 +2,12 @@
 - @header = haml :code_header
 #code-mirror-wrapper
   %textarea.code-mirror#atscc_input
-    implement main () = print "Hello World!\n"
+    = canned
 %h3
-  ATS Compiler Output
+  #{title} Compiler Output
   #atscc-buttons
-    %button.atscc-button{"data-action"=>"typecheck"} Typecheck
-    %button.atscc-button{"data-action"=>"compile"} Run
+    - actions.each do |action|
+      %button.atscc-button{"data-compiler"=>compiler, "data-action"=>action}
+        = action.upcase
   .cl
 #ats-console

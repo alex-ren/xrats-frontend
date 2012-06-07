@@ -162,6 +162,7 @@ body {
     height:150px;
     width:100%;
     background:#FAFAFA;
+    overflow-y:scroll;
 }
 
 #atscc-buttons {
