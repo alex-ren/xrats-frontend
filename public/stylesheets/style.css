@@ -165,6 +165,10 @@ body {
     overflow-y:scroll;
 }
 
+#ats-info {
+    display:none;
+}
+
 #atscc-buttons {
     display: inline;
     margin-left: 25px;

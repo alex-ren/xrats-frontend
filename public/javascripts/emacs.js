@@ -11,8 +11,8 @@
 
     CodeMirror.keyMap.emacs = {
         "Ctrl-X": function(cm) {cm.setOption("keyMap", "emacs-Ctrl-X");},
-        "Ctrl-D": function(cm) {compile_code("ats","typecheck");},
-        "Alt-C":  function(cm) {compile_code("ats","compile");},
+        "Ctrl-D": function(cm) {compile_code("typecheck");},
+        "Alt-C":  function(cm) {compile_code("compile");},
         "Ctrl-W": function(cm) {addToRing(cm.getSelection()); cm.replaceSelection("");},
         "Ctrl-Alt-W": function(cm) {addToRing(cm.getSelection()); cm.replaceSelection("");},
         "Alt-W": function(cm) {addToRing(cm.getSelection());},

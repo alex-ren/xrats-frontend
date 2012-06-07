@@ -28,7 +28,8 @@ setup_search = () ->
 
 code_mirror = 0
 
-compile_code = (compiler,action) ->
+compile_code = (action) ->
+  compiler = window.ats.compiler
   $('#ats-console').html("Waiting for the server...")
   $.post(
     "/#{compiler}/#{action}",
@@ -37,9 +38,11 @@ compile_code = (compiler,action) ->
       $("#ats-console").html("<pre>#{res.output}</pre>")
     "json")
 
-this.compile_code = compile_code
+this.ats = {}
+this.ats.compile_code = compile_code
 
 setup_code_mirror = () ->
+  window.ats.compiler = $('#ats-info').attr("data-compiler")
   buf = $(".code-mirror")
   if buf.length is 0
     return
@@ -47,4 +50,4 @@ setup_code_mirror = () ->
     jQuery.getScript "/javascripts/emacs.js", () ->
       code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs"})
   $('.atscc-button').bind "click", (event) ->
-    compile_code($(this).attr('data-compiler'),$(this).attr('data-action'))
+    compile_code($(this).attr('data-action'))

@@ -1,5 +1,6 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
+#ats-info{"data-compiler"=>compiler}
 #code-mirror-wrapper
   %textarea.code-mirror#atscc_input
     = canned
@@ -7,7 +8,7 @@
   #{title} Compiler Output
   #atscc-buttons
     - actions.each do |action|
-      %button.atscc-button{"data-compiler"=>compiler, "data-action"=>action}
+      %button.atscc-button{"data-action"=>action}
         = action.upcase
   .cl
 #ats-console
