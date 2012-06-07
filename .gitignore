@@ -5,3 +5,4 @@ log/*
 config/repos.yml
 config/ats.yml
 config/sphinx.conf
+config/app.yml

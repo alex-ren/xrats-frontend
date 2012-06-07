@@ -12,12 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-
 void die(char *msg) {
   printf("%s\n",msg);
   exit(1);
 }
-
 
 inline kill_child(char *error, int child) {
   ptrace(PTRACE_KILL,child,0,0);

@@ -35,6 +35,7 @@ namespace :deploy do
     run "cp #{production_config_path}/repos.yml #{release_path}/config/repos.yml"
     run "cp #{production_config_path}/ats.yml #{release_path}/config/ats.yml"
     run "cp #{production_config_path}/sphinx.conf #{release_path}/config/sphinx.conf"
+    run "cp #{production_config_path}/app.yml #{release_path}/config/sphinx.conf"
     run <<CMD
 rm -rf #{release_path}/repos && 
 ln -nfs #{production_repos_path}/repos #{release_path}/repos
@@ -47,7 +48,6 @@ CMD
 rm -rf #{release_path}/data &&
 ln -nfs #{production_shared_path}/data #{release_path}/data
 CMD
-
     release_name = File.basename(release_path)
     sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
   end
