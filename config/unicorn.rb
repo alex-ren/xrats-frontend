@@ -1,28 +1,20 @@
 app_name = "lxrats"
 user_name = "william"
-env = ENV['UNICORN_ENV'] || 'development'
 
-preload_app true
+preload_app false
 worker_processes 4
 timeout 30
 listen "/tmp/#{app_name}.sock", :backlog => 64
 
-if env == 'development'
-  app_root = Dir.pwd
-  pid_path = "#{app_root}/tmp/pids"
+user_name = "ats"
+app_root = "/home/#{user_name}/#{app_name}"
+shared_path = "#{app_root}/shared"
+pid_path = "#{shared_path}/pids"
   
-  working_directory app_root
-  listen 3000
-else
-  user_name = "ats"
-  app_root = "/home/#{user_name}/#{app_name}"
-  shared_path = "#{app_root}/shared"
-  pid_path = "#{shared_path}/pids"
-  
-  working_directory "#{app_root}/current"
-  stderr_path "#{shared_path}/log/unicorn.stderr.log"
-  stdout_path "#{shared_path}/log/unicorn.stdout.log"
-end
+working_directory "#{app_root}/current"
+stderr_path "#{shared_path}/log/unicorn.stderr.log"
+stdout_path "#{shared_path}/log/unicorn.stdout.log"
+
 pid "#{pid_path}/unicorn.#{app_name}.pid"
 
 before_fork do |server, worker|
