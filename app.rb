@@ -12,7 +12,7 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
-enable :sessions
+use Rack::Session::Cookie, :expire_after => 2592000 # In seconds
 
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
@@ -85,14 +85,16 @@ post '/:compiler/:action' do |compiler,action|
   res = ""
   compiler = Shellwords.escape(compiler)
   flags = []
-  case action 
+  #Save by default
+  session[:saved_code] ||= {}
+  session[:saved_code][compiler] = params[:input]
+  case action
   when "typecheck"
     flags << "--tc"
   when "compile"
     nil
   when "save"
-    session[:save_code] = params[:input]
-    return {status:0}.to_json
+    return {status:0,output:"Saved Successfully"}.to_json
   else
     raise Sinatra::NotFound
   end
@@ -102,7 +104,6 @@ post '/:compiler/:action' do |compiler,action|
     stdin.close
     res = stdout.read
   end
-  puts "Status is #{status.to_i}"
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
@@ -119,19 +120,24 @@ get %r{^/(ats|repos)??/?$} do
   haml :index
 end
 
+get "/code/:compiler/download" do |compiler|
+  content_type :text
+  session[:saved_code][compiler] if session[:saved_code]
+end
+
 get "/code/:compiler" do |compiler|
   actions = []
-  canned = ""
+  canned = session[:saved_code][compiler] if session[:saved_code]
   title = ""
   case compiler 
   when "ats"
     title = "ATS"
-    canned = open("config/helloworld.dats").read()
-    actions = ["typecheck","compile"]
+    canned ||= open("config/helloworld.dats").read()
+    actions = ["typecheck","compile","save"]
   when "patsopt"
     title = "ATS2"
-    canned = open("config/fibonacci.dats").read()
-    actions = ["typecheck"]
+    canned ||= open("config/fibonacci.dats").read()
+    actions = ["typecheck","save"]
   else 
     raise Sinatra::NotFound
   end
