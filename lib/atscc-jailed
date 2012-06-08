@@ -51,11 +51,6 @@ $> = $uid;
 $( = $gid;
 $) = $gid; 
 
-sub time_out { 
-   print "TimedOut";
-   exit(1); 
-};
-
 sub file_of_stdin {
     local($filename) = ($_[0]);
     open(SOURCE,"+>","/tmp/".$filename) 

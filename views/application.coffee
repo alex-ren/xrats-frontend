@@ -35,6 +35,8 @@ compile_code = (action) ->
     "/#{compiler}/#{action}",
     {input:code_mirror.getValue()}
     (res) ->
+      result = if res.status == 0 then 'success' else 'failed'
+      window._gaq.push(['_trackEvent',compiler,action,result])
       $("#ats-console").html("<pre>#{res.output}</pre>")
     "json")
 
