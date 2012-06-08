@@ -1,4 +1,4 @@
 development:
  :google_analytics: UA-xxxxxxxxxx
-production:
+none:
  :google_analytics: UA-32490077-1

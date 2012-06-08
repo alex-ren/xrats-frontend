@@ -35,7 +35,7 @@ namespace :deploy do
     run "cp #{production_config_path}/repos.yml #{release_path}/config/repos.yml"
     run "cp #{production_config_path}/ats.yml #{release_path}/config/ats.yml"
     run "cp #{production_config_path}/sphinx.conf #{release_path}/config/sphinx.conf"
-    run "cp #{production_config_path}/app.yml #{release_path}/config/sphinx.conf"
+    run "cp #{production_config_path}/app.yml #{release_path}/config/app.yml"
     run <<CMD
 rm -rf #{release_path}/repos && 
 ln -nfs #{production_repos_path}/repos #{release_path}/repos
