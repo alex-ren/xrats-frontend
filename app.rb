@@ -54,7 +54,7 @@ def xref_of_file path, base
     ENV["PATSHOME"] = "/opt/postiats"
     input = File.open(path).read()
     res = ""
-    status = Open4::popen4(pats2html_path) do |pid,stdin,stdout,stderr|
+    status = Open4::popen4(pats2html_path+" "+flag) do |pid,stdin,stdout,stderr|
       stdin.puts(input)
       stdin.close
       res = stdout.read
