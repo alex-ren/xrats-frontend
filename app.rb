@@ -12,8 +12,6 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
-use Rack::Session::Cookie, :expire_after => 2592000 # In seconds
-
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
     str.gsub!(pattern,replace)
@@ -44,6 +42,7 @@ def xref_of_file path, base
   raise Sinatra::NotFound if not File.exists?(path)
   file_folder = File.dirname(path)
   atsopt_path = "/opt/ats/bin/atsopt"
+  pats2html_path = "/opt/postiats/utils/atsyntax/pats2html" #For ATS2
   flag = ""
   if path.match(/\.dats/)
     flag = "--dynamic"
@@ -51,7 +50,19 @@ def xref_of_file path, base
   if path.match(/\.sats/)
     flag = "--static"
   end
-  `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} #{flag} #{path}`
+  if File.exists? file_folder+"/.ats2"
+    ENV["PATSHOME"] = "/opt/postiats"
+    input = File.open(path).read()
+    res = ""
+    status = Open4::popen4(pats2html_path) do |pid,stdin,stdout,stderr|
+      stdin.puts(input)
+      stdin.close
+      res = stdout.read
+    end
+    res
+  else
+    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} #{flag} #{path}`
+  end
 end
 
 def make_xref folder,repo,path
@@ -85,16 +96,11 @@ post '/:compiler/:action' do |compiler,action|
   res = ""
   compiler = Shellwords.escape(compiler)
   flags = []
-  #Save by default
-  session[:saved_code] ||= {}
-  session[:saved_code][compiler] = params[:input]
   case action
   when "typecheck"
     flags << "--tc"
   when "compile"
     nil
-  when "save"
-    return {status:0,output:"Saved Successfully"}.to_json
   else
     raise Sinatra::NotFound
   end
@@ -120,24 +126,19 @@ get %r{^/(ats|repos)??/?$} do
   haml :index
 end
 
-get "/code/:compiler/download" do |compiler|
-  content_type :text
-  session[:saved_code][compiler] if session[:saved_code]
-end
-
 get "/code/:compiler" do |compiler|
   actions = []
-  canned = session[:saved_code][compiler] if session[:saved_code]
+  canned = ""
   title = ""
   case compiler 
   when "ats"
     title = "ATS"
-    canned ||= open("config/helloworld.dats").read()
-    actions = ["typecheck","compile","save"]
+    canned = open("config/helloworld.dats").read()
+    actions = ["typecheck","compile"]
   when "patsopt"
     title = "ATS2"
-    canned ||= open("config/fibonacci.dats").read()
-    actions = ["typecheck","save"]
+    canned = open("config/fibonacci.dats").read()
+    actions = ["typecheck"]
   else 
     raise Sinatra::NotFound
   end

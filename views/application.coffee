@@ -41,12 +41,6 @@ compile_code = (action) ->
       $("#ats-console").html("<pre>#{res.output}</pre>")
     "json")
 
-handle_file = () ->
-  if this.files.length == 0
-    return
-  file = this.files[0]
-  file_reader.readAsText(file)
-
 this.ats = {}
 this.ats.compile_code = compile_code
 
@@ -60,11 +54,3 @@ setup_code_mirror = () ->
       code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs"})
   $('.atscc-button').bind "click", (event) ->
     compile_code($(this).attr('data-action'))
-  file_reader = new FileReader()
-  file_reader.onload = (evnt) ->
-    code_mirror.setValue(evnt.target.result)
-  attached_file = $('#attached_file')
-  attached_file.bind "change", handle_file
-  $('.attach_file').bind "click", (e) ->
-    if(attached_file)
-      attached_file.click()

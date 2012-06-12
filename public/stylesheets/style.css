@@ -131,6 +131,16 @@ body {
     color:#009000;
 }
 
+.atsyntax span.stalab  {
+    color:#0000F0;
+    font-style:italic
+}
+
+.atsyntax span.dynlab  {
+    color:#F00000;
+    font-style:italic
+}
+
 .atsyntax span.stacstdec  {
     text-decoration:none;
 }
@@ -150,6 +160,11 @@ body {
 }
 
 .atsyntax span.dyncstuse  {
+    color:#B80000;
+    text-decoration:underline;
+}
+
+.atsyntax span.dyncst_implement  {
     color:#B80000;
     text-decoration:underline;
 }

@@ -10,10 +10,5 @@
     - actions.each do |action|
       %button.atscc-button{"data-action"=>action}
         = action.capitalize
-    %input#attached_file{:type=>"file",:style=>"display:none"}
-    %button.attach_file
-      Upload File
-    %a#download_link{:href=>"/code/#{compiler}/download", :download=>"#{compiler}_code.dats"}
-      Download
   .cl
 #ats-console
