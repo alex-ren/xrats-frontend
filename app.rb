@@ -12,6 +12,10 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
+helpers do
+  include Rack::Utils
+end
+
 def replace_pattern str, pattern, replace
   while str.match(pattern) do
     str.gsub!(pattern,replace)
@@ -86,7 +90,7 @@ def make_xref folder,repo,path
   end
   ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{ats_home}"
   output = xref_of_file "#{folder}/#{repo}/#{path}", base
-  replace_pattern(output,/a href\=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,"a href=\"/ats/#{ats_home}/\\1\"")
+  replace_pattern(output,/a href=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,"a href=\"/ats/#{ats_home}/\\1\"")
   replace_pattern(output,/a href=\"#{Dir.pwd}\/repos\/(.*)\"/,"a href=\"/repos/\\1\"")
   output
 end
@@ -110,14 +114,25 @@ post '/:compiler/:action' do |compiler,action|
     stdin.close
     res = stdout.read
   end
+  res = escape_html res
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
+  #Add formatting for syntax errors.
+  error_replacement = "<button class=\"syntax-error\" data-line=\"\\1\" data-char=\"\\2\">line=\\1, offs=\\2</button>"
+  formatted = res.split("\n")
+  formatted.map! do |line|
+    if /^&#x2F;tmp/.match(line) #patsopt throws errors in the prelude, only want ours.
+      replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,error_replacement)
+    end
+    line
+  end
+  res = formatted.join("\n")
   {status:status.to_i,output:res}.to_json
 end
 
 get '/application.js' do
-  cache_control :public, max_age:"86400"
+  #cache_control :public, max_age:"86400"
   coffee :application
 end
 

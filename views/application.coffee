@@ -4,6 +4,11 @@ $(document).ready ->
 
 code_mirror = 0
 file_reader = 0
+marked_lines = []
+
+
+this.ats = {}
+this.ats.compile_code = compile_code
 
 search = (params) ->
   $.get(
@@ -30,6 +35,10 @@ setup_search = () ->
     if event.keyCode is 13 then trigger_search()
 
 compile_code = (action) ->
+  for line in marked_lines
+    code_mirror.clearMarker(line)
+    code_mirror.setLineClass(line)
+  (code_mirror.clearMarker(line) for line in marked_lines)
   compiler = window.ats.compiler
   $('#ats-console').html("Waiting for the server...")
   $.post(
@@ -39,6 +48,18 @@ compile_code = (action) ->
       result = if res.status == 0 then 'success' else 'failed'
       window._gaq.push(['_trackEvent',compiler,action,result])
       $("#ats-console").html("<pre>#{res.output}</pre>")
+      for element in $(".syntax-error")
+          line = $(element).attr("data-line") - 1
+          code_mirror.setLineClass(line,"cm-error","cm-error")
+          code_mirror.setMarker(line)
+          marked_lines.push line
+      $(".syntax-error").bind "click", (e) ->
+        line = $(this).attr("data-line") - 1
+        char = $(this).attr("data-char") - 1
+        coords = code_mirror.charCoords({line:line,ch:char},"local")
+        code_mirror.scrollTo(coords.x,coords.y)
+        code_mirror.setCursor({line:line,ch:char})
+        code_mirror.focus()
     "json")
 
 handle_file = () ->
@@ -47,9 +68,6 @@ handle_file = () ->
   file = this.files[0]
   file_reader.readAsText(file)
 
-this.ats = {}
-this.ats.compile_code = compile_code
-
 setup_code_mirror = () ->
   window.ats.compiler = $('#ats-info').attr("data-compiler")
   buf = $(".code-mirror")
@@ -57,7 +75,9 @@ setup_code_mirror = () ->
     return
   jQuery.getScript "/javascripts/codemirror.js", (script,status,xhr) ->
     jQuery.getScript "/javascripts/emacs.js", () ->
-      code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs"})
+      code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs",matchBrackets:true})
+      $(code_mirror.getScrollerElement()).height(500);
+      code_mirror.refresh();
   $('.atscc-button').bind "click", (event) ->
     compile_code($(this).attr('data-action'))
   file_reader = new FileReader()
