@@ -4,8 +4,6 @@ $(document).ready ->
 
 code_mirror = 0
 file_reader = 0
-marked_lines = []
-
 
 this.ats = {}
 this.ats.compile_code = compile_code
@@ -35,10 +33,6 @@ setup_search = () ->
     if event.keyCode is 13 then trigger_search()
 
 compile_code = (action) ->
-  for line in marked_lines
-    code_mirror.clearMarker(line)
-    code_mirror.setLineClass(line)
-  (code_mirror.clearMarker(line) for line in marked_lines)
   compiler = window.ats.compiler
   $('#ats-console').html("Waiting for the server...")
   $.post(
@@ -47,12 +41,14 @@ compile_code = (action) ->
     (res) ->
       result = if res.status == 0 then 'success' else 'failed'
       window._gaq.push(['_trackEvent',compiler,action,result])
+      cnt_lines = code_mirror.lineCount()
+      i = 0
+      while i++ < cnt_lines
+        code_mirror.setLineClass(i)
       $("#ats-console").html("<pre>#{res.output}</pre>")
       for element in $(".syntax-error")
           line = $(element).attr("data-line") - 1
           code_mirror.setLineClass(line,"cm-error","cm-error")
-          code_mirror.setMarker(line)
-          marked_lines.push line
       $(".syntax-error").bind "click", (e) ->
         line = $(this).attr("data-line") - 1
         char = $(this).attr("data-char") - 1
