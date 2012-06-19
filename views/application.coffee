@@ -42,8 +42,7 @@ compile_code = (action) ->
       result = if res.status == 0 then 'success' else 'failed'
       window._gaq.push(['_trackEvent',compiler,action,result])
       cnt_lines = code_mirror.lineCount()
-      i = 0
-      while i++ < cnt_lines
+      for i in [0..cnt_lines]
         code_mirror.setLineClass(i)
       $("#ats-console").html("<pre>#{res.output}</pre>")
       for element in $(".syntax-error")
