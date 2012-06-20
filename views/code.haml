@@ -10,6 +10,12 @@
     - actions.each do |action|
       %button.atscc-button{"data-action"=>action}
         = action.capitalize
+    - if actions.include? "compile"
+      Compile Flags:
+      %input#compile-flags.arguments{:type=>"text"}
+    - if actions.include? "run"
+      Runtime Arguments:
+      %input#runtime-flags.arguments{:type=>"text"}
     %input#attached_file{:type=>"file",:style=>"display:none;"}
     %button.attach_file
       Upload

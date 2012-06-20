@@ -189,6 +189,10 @@ body {
     margin-left: 25px;
 }
 
+#atscc-buttons .arguments {
+    width:100px;
+}
+
 #ats-console {
     padding:10px;
 }

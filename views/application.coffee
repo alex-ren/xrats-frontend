@@ -35,9 +35,17 @@ setup_search = () ->
 compile_code = (action) ->
   compiler = window.ats.compiler
   $('#ats-console').html("Waiting for the server...")
+  if  cflags = $("#compile-flags").val()
+    cflags = cflags.split(" ")
+  else
+    cflags = []
+  if  rflags = $("#runtime-flags").val()
+    rflags = rflags.split(" ")
+  else
+    rflags = []
   $.post(
     "/#{compiler}/#{action}",
-    {input:code_mirror.getValue()}
+    {input:code_mirror.getValue(),compile_flags:cflags,runtime_flags:rflags}
     (res) ->
       result = if res.status == 0 then 'success' else 'failed'
       window._gaq.push(['_trackEvent',compiler,action,result])

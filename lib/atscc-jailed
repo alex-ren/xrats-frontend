@@ -23,15 +23,16 @@ use BSD::Resource;
 use String::Random;
 use IO::Handle;
 use Getopt::Long;
+use JSON;
 
 $chroot_jail = "/opt/atscc-jail";
 
 setrlimit(RLIMIT_CPU,1,2);
 setrlimit(RLIMIT_CORE,0,0);
 setrlimit(RLIMIT_LOCKS,0,0);
-setrlimit(RLIMIT_NOFILE,25,25);
-setrlimit(RLIMIT_OFILE,25,25);
-setrlimit(RLIMIT_OPEN_MAX,25,25);
+setrlimit(RLIMIT_NOFILE,50,50);
+setrlimit(RLIMIT_OFILE,50,50);
+setrlimit(RLIMIT_OPEN_MAX,50,50);
 setrlimit(RLIMIT_FSIZE,100000,150000);
 
 setpriority(PRIO_PROCESS,PRIO_MAX);
@@ -51,16 +52,14 @@ $> = $uid;
 $( = $gid;
 $) = $gid; 
 
-sub file_of_stdin {
-    local($filename) = ($_[0]);
-    open(SOURCE,"+>","/tmp/".$filename) 
+sub file_of_string {
+    local($filename, $content) = ($_[0], $_[1]);
+    open(SOURCE,"+>","/tmp/".$filename)
 	or die "Cannot create tmp file";
-    while($line = <STDIN>) {
-        print SOURCE $line;
-    }
+    print SOURCE $content;
     close(SOURCE);
 }
-
+ 
 sub random_string {
     $rand = new String::Random;
     return $rand->randpattern("CnccCcCCncnCcnncCcnCnCcCnCnC");
@@ -68,21 +67,20 @@ sub random_string {
 
 # fork and exec a command, only displaying errors if it exits with 
 # a non-zero status.
-sub fork_and_exec {
-    local($cmd) = ($_[0]);
+sub fork_exec_err {
+    @cmd = @_;
     pipe CCRD, CCWR;
     
     $pid = fork();
     die "Couldn't fork" unless defined $pid;
-    
     if ( $pid > 0 ) {
         close(CCWR);
         wait();
     } else {
         close(CCRD);
-        open(STDERR,">&CCWR");
-        open(STDOUT,">","/dev/null");
-        exec $cmd or die "Couldn't run compiler..";
+        open(STDERR, ">&CCWR");
+        open(STDOUT, ">", "/dev/null");
+        exec { $cmd[0] } @cmd or die "Couldn't run compiler..";
     }
     $success = !$?;
 
@@ -96,40 +94,48 @@ sub fork_and_exec {
 }
 
 sub compile_ats {
-    local($options) = ($_[0]);
+    local($options, $args) = ($_[0], $_[1]);
     $filename = random_string();
-    file_of_stdin($filename.".dats");
+    file_of_string($filename.".dats", $args->{"input"});
     @files = ("$filename.dats", $filename."_dats.c", $filename);
     $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
     chdir("/tmp"); #ATS needs to generate code in the pwd.
-    $compile_cmd = $options->{"path"}." ".$options->{"flags"}." -o /tmp/$filename /tmp/$filename.dats";
-
-    $success = fork_and_exec($compile_cmd);
-
+    @compile_cmd = ($options->{"path"});
+    push @compile_cmd,  split(" ","-o /tmp/$filename /tmp/$filename.dats");
+    push @compile_cmd,  @{$options->{"compile_flags"}};
+    $success = fork_exec_err(@compile_cmd);
+   
     if($success) {
         if($options->{"typecheck"}) {
             print "Your code has been successfully typechecked!\n";
-        } else {
+        } elsif ($options->{"run"}) {
             #Make sure we can't write to these files.
             chmod 0555, @files;
 	    alarm 2;
             setrlimit(RLIMIT_STACK,1048576,1048576);
             setrlimit(RLIMIT_VMEM,2048576,2048576);
-            system "/opt/safe-exec /tmp/$filename";
+            @run_cmd = ("/opt/safe-exec");
+            push @run_cmd , "/tmp/$filename";
+            push @run_cmd, @{$options->{"runtime_flags"}};
+            system @run_cmd;
             chdir("/tmp");
             chmod 0755, @files;
+        } else {
+            print "Your code has been successfully compiled!\n";
         }
     }
     return @files;
 }
 
 sub compile_patsopt {
-    local($options) = ($_[0]);
+    local($options, $args) = ($_[0], $_[1]);
     $filename = random_string();
-    file_of_stdin($filename.".dats");
+    file_of_string($filename.".dats", $args->{"input"});
     $ENV{'PATSHOME'} = "/opt/postiats";
-    $compile_cmd = $options->{"path"}." ".$options->{"flags"}." --dynamic /tmp/$filename.dats";
-    if( fork_and_exec($compile_cmd) ) {
+    @compile_cmd = ($options->{"path"});
+    push @compile_cmd, split(" ","--dynamic /tmp/$filename.dats");
+    push @compile_cmd, @{ $options->{"compile_flags"} };
+    if( fork_exec_err(@compile_cmd) ) {
 	print "Your code has been successfully typechecked!";
     }
     return ($filename);
@@ -137,32 +143,54 @@ sub compile_patsopt {
 
 %compilers = ("ats"=>
               {"options"=>
-               {"path"=>"/opt/ats-0.2.7/bin/atscc","flags"=>""}
+               {"path"=>"/opt/ats-0.2.7/bin/atscc","compile_flags"=>[],"runtime_flags"=>[]}
                ,"compile"=>\&compile_ats
               },
               "patsopt"=>
               {"options"=>
-              {"path"=>"/opt/postiats/bin/patsopt","flags"=>""}
+              {"path"=>"/opt/postiats/bin/patsopt","compile_flags"=>[],"runtime_flags"=>[]}
               ,"compile"=>\&compile_patsopt
               });
 
-$compiler_selected="";
-$typecheck="";
+#Collect the serialized input.
+$input = "";
+while(<STDIN>) {
+    $input .= $_;
+}
 
-GetOptions('tc'=>\$typecheck, 'compiler=s'=>\$compiler_selected);
+$args = JSON->new->utf8->space_after->decode($input);
 
-die "Invalid compiler given" unless $compiler = $compilers{$compiler_selected};
+die "Invalid compiler given" unless $compiler = $compilers{ $args->{"compiler"} };
 
 $options = $compiler->{"options"};
 
-if($typecheck) {
-    $options->{"flags"} .= " -tc";
-    $options->{"typecheck"} = 1;
-}
-
 $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 
-@files = $compiler->{"compile"}->($options);
+$action = $args->{"action"};
+
+if( $action eq "typecheck" ) {
+    push @{$options->{"compile_flags"}}, "-tc";
+    $options->{"typecheck"} = 1;
+} elsif ( $action eq "compile") {
+    foreach $flag (@{$args->{"compile_flags"}}) {
+        #Define a valid flag.
+        if ( $flag =~ m/([A-Za-z0-9\-]+)/ ) {
+             push @{$options->{"compile_flags"}}, $1;
+        }
+    }
+} elsif ( $action eq "run" ) {
+    foreach $flag (@{$args->{"runtime_flags"}}) {
+        #The user can give whatever they want to their program.
+	if( $flag =~ m/(.*)/ ) {
+	   push @{ $options->{"runtime_flags"} }, $1;
+        }
+    }
+   $options->{"run"} = 1;
+} else {
+   die "Invalid Action Given";
+}
+
+@files = $compiler->{"compile"}->($options, $args);
 
 chdir("/tmp");
 

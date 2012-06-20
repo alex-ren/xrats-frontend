@@ -102,15 +102,16 @@ post '/:compiler/:action' do |compiler,action|
   flags = []
   case action
   when "typecheck"
-    flags << "--tc"
   when "compile"
-    nil
+  when "run"
   else
     raise Sinatra::NotFound
   end
-  jailed_command = "lib/atscc-jailed --compiler #{compiler} #{flags.join(" ")}"
+  input = params.to_json
+  puts input
+  jailed_command = "lib/atscc-jailed"
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
-    stdin.puts(params[:input])
+    stdin.puts(input)
     stdin.close
     res = stdout.read
   end
@@ -122,7 +123,7 @@ post '/:compiler/:action' do |compiler,action|
   error_replacement = "<button class=\"syntax-error\" data-line=\"\\1\" data-char=\"\\2\">line=\\1, offs=\\2</button>"
   formatted = res.split("\n")
   formatted.map! do |line|
-    if /^&#x2F;tmp/.match(line) #patsopt throws errors in the prelude, only want ours.
+    if /^(&#x2F;tmp|syntax error)/.match(line) #patsopt throws errors in the prelude, only want ours.
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,error_replacement)
     end
     line
@@ -149,7 +150,7 @@ get "/code/:compiler" do |compiler|
   when "ats"
     title = "ATS"
     canned = open("config/helloworld.dats").read()
-    actions = ["typecheck","compile"]
+    actions = ["typecheck","compile","run"]
   when "patsopt"
     title = "ATS2"
     canned = open("config/fibonacci.dats").read()

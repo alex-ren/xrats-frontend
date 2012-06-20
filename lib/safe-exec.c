@@ -91,11 +91,21 @@ int main (int argc, char *argv[])  {
   int pid;
   int status;
   int nfd;
-  if(argc != 2) {
+  char **exec_arg;
+  char **p,**r;
+
+  if(argc < 2) {
     die("Please provide a binary file to run.");
   }
   catch_exec = initial_exec;
-  char *exec_arg[2] = {argv[1],NULL};
+
+  exec_arg = calloc(argc+1,sizeof(char*));
+  exec_arg[0] = argv[1];
+  
+  for( p = &argv[2], r = &exec_arg[1]; *p; p++, r++) {
+    *r = *p;
+  }
+  
   if( ( pid = fork() ) > 0 ) {
     patrol_syscalls(pid);
   } else if (pid == 0) {
