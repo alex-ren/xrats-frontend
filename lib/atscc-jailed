@@ -99,6 +99,7 @@ sub compile_ats {
     file_of_string($filename.".dats", $args->{"input"});
     @files = ("$filename.dats", $filename."_dats.c", $filename);
     $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
+    $ENV{'ATSHOMERELOC'} = "ATS-0.2.8";
     chdir("/tmp"); #ATS needs to generate code in the pwd.
     @compile_cmd = ($options->{"path"});
     push @compile_cmd,  split(" ","-o /tmp/$filename /tmp/$filename.dats");
