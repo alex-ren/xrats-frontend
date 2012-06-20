@@ -170,25 +170,26 @@ $ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/us
 $action = $args->{"action"};
 
 if( $action eq "typecheck" ) {
+
     push @{$options->{"compile_flags"}}, "-tc";
     $options->{"typecheck"} = 1;
-} elsif ( $action eq "compile") {
+
+} else {
+
     foreach $flag (@{$args->{"compile_flags"}}) {
         #Define a valid flag.
         if ( $flag =~ m/([A-Za-z0-9\-]+)/ ) {
              push @{$options->{"compile_flags"}}, $1;
         }
     }
-} elsif ( $action eq "run" ) {
+
     foreach $flag (@{$args->{"runtime_flags"}}) {
-        #The user can give whatever they want to their program.
+       #The user can give whatever they want to their program.
 	if( $flag =~ m/(.*)/ ) {
 	   push @{ $options->{"runtime_flags"} }, $1;
         }
     }
-   $options->{"run"} = 1;
-} else {
-   die "Invalid Action Given";
+    $options->{"run"} = ($action eq "run") ? 1 : 0;
 }
 
 @files = $compiler->{"compile"}->($options, $args);
