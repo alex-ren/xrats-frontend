@@ -108,7 +108,6 @@ post '/:compiler/:action' do |compiler,action|
     raise Sinatra::NotFound
   end
   input = params.to_json
-  puts input
   jailed_command = "lib/atscc-jailed"
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
     stdin.puts(input)
