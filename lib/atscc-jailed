@@ -113,8 +113,8 @@ sub compile_ats {
             #Make sure we can't write to these files.
             chmod 0555, @files;
 	    alarm 2;
-            setrlimit(RLIMIT_STACK,1048576,1048576);
-            setrlimit(RLIMIT_VMEM,2048576,2048576);
+            setrlimit(RLIMIT_STACK,8048576,8048576);
+            setrlimit(RLIMIT_VMEM,16048576,16048576);
             @run_cmd = ("/opt/safe-exec");
             push @run_cmd , "/tmp/$filename";
             push @run_cmd, @{$options->{"runtime_flags"}};
