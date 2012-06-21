@@ -31,7 +31,6 @@ def save_session hashcode, data
   File.open("data/sessions/#{hashcode}","w+") do |session|
     session.puts(data.to_json)
   end
-  
 end
 
 def retrieve_session hashcode
@@ -148,12 +147,23 @@ post '/:compiler/:action' do |compiler,action|
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
-  error_replacement = "<button class=\"syntax-error\" data-line=\"\\1\" data-char=\"\\2\">line=\\1, offs=\\2</button>"
+  range_err_replace = <<-eos
+ <button class="syntax-error range-error" data-line-start="\\1" data-char-start="\\2"
+         data-line-end="\\3" data-char-end="\\4">(\\1,\\2) to (\\3,\\4)</button>
+eos
+  line_err_replace = <<-eos
+ <button class="syntax-error point-error" data-line="\\1" data-char="\\2">\
+   line=\\1, offs=\\2 \
+ </button>
+eos
   formatted = res.split("\n")
   formatted.map! do |line|
     # patsopt throws errors in the prelude, we only want our errors.
-    if /^(&#x2F;tmp|syntax error)/.match(line) 
-      replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,error_replacement)
+    if /^(&#x2F;tmp|syntax error)/.match(line)
+      replace_pattern(line,/\(line=(\d+), offs=(\d+)\).*?\(line=(\d+), offs=(\d+)\)/,
+                      range_err_replace)
+      replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,
+                      line_err_replace)
     end
     line
   end

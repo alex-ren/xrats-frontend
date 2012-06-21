@@ -5,6 +5,8 @@ $(document).ready ->
 code_mirror = 0
 file_reader = 0
 
+marked_ranges = []
+
 this.ats = {}
 this.ats.compile_code = compile_code
 
@@ -52,17 +54,31 @@ compile_code = (action) ->
       cnt_lines = code_mirror.lineCount()
       for i in [0..cnt_lines]
         code_mirror.setLineClass(i)
+      for range in marked_ranges
+        range.clear()
+      marked_ranges = []
       $("#ats-console").html("<pre>#{res.output}</pre>")
-      for element in $(".syntax-error")
+      for element in $(".point-error")
           line = $(element).attr("data-line") - 1
           code_mirror.setLineClass(line,"cm-error","cm-error")
-      $(".syntax-error").bind "click", (e) ->
+      for element in $(".range-error")
+          from = {line:$(element).attr("data-line-start")-1,ch:$(element).attr("data-char-start")-1}
+          to = {line:$(element).attr("data-line-end")-1,ch:$(element).attr("data-char-end")-1}
+          marked = code_mirror.markText(from,to,"cm-error")
+          marked_ranges.push marked
+      focus_point = (point) ->
+        coords = code_mirror.charCoords(point,"local")
+        code_mirror.scrollTo(coords.x,coords.y)
+        code_mirror.setCursor(point)
+        code_mirror.focus()
+      $(".point-error").bind "click", (e) ->
         line = $(this).attr("data-line") - 1
         char = $(this).attr("data-char") - 1
-        coords = code_mirror.charCoords({line:line,ch:char},"local")
-        code_mirror.scrollTo(coords.x,coords.y)
-        code_mirror.setCursor({line:line,ch:char})
-        code_mirror.focus()
+        focus_point({line:line,ch:char})
+      $(".range-error").bind "click", (e) ->
+        line = $(this).attr("data-line-start") - 1
+        char = $(this).attr("data-char-start") - 1
+        focus_point({line:line,ch:char})
     "json")
 
 handle_file = () ->
