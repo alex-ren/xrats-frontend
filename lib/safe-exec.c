@@ -91,27 +91,18 @@ int main (int argc, char *argv[])  {
   int pid;
   int status;
   int nfd;
-  char **exec_arg;
-  char **p,**r;
 
   if(argc < 2) {
     die("Please provide a binary file to run.");
   }
   catch_exec = initial_exec;
 
-  exec_arg = calloc(argc+1,sizeof(char*));
-  exec_arg[0] = argv[1];
-  
-  for( p = &argv[2], r = &exec_arg[1]; *p; p++, r++) {
-    *r = *p;
-  }
-  
   if( ( pid = fork() ) > 0 ) {
     patrol_syscalls(pid);
   } else if (pid == 0) {
     dup2(STDOUT_FILENO,STDERR_FILENO);
     ptrace(PTRACE_TRACEME,0,0,0);
-    if(execvp(exec_arg[0],exec_arg)) {
+    if(execvp(argv[1],&argv[1])) {
       perror("exec failed");
       die("dead");
     }
