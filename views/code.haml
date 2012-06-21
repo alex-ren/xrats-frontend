@@ -1,6 +1,6 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
-#ats-info{"data-compiler"=>compiler}
+#ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash}
 #code-mirror-wrapper
   %textarea.code-mirror#atscc_input
     = canned
@@ -12,10 +12,10 @@
         = action.capitalize
     - if actions.include? "compile"
       Compile Flags:
-      %input#compile-flags.arguments{:type=>"text"}
+      %input#compile-flags.arguments{:type=>"text",:value=>render_flags(@session["compile_flags"])}
     - if actions.include? "run"
       Runtime Arguments:
-      %input#runtime-flags.arguments{:type=>"text"}
+      %input#runtime-flags.arguments{:type=>"text",:value=>render_flags(@session["runtime_flags"])}
     %input#attached_file{:type=>"file",:style=>"display:none;"}
     %button.attach_file
       Upload

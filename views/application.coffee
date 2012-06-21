@@ -35,7 +35,7 @@ setup_search = () ->
 compile_code = (action) ->
   compiler = window.ats.compiler
   $('#ats-console').html("Waiting for the server...")
-  if  cflags = $("#compile-flags").val()
+  if cflags = $("#compile-flags").val()
     cflags = cflags.split(" ")
   else
     cflags = []
@@ -45,7 +45,7 @@ compile_code = (action) ->
     rflags = []
   $.post(
     "/#{compiler}/#{action}",
-    {input:code_mirror.getValue(),compile_flags:cflags,runtime_flags:rflags}
+    {input:code_mirror.getValue(),compile_flags:cflags,runtime_flags:rflags, hashcode:window.ats.hashcode}
     (res) ->
       result = if res.status == 0 then 'success' else 'failed'
       window._gaq.push(['_trackEvent',compiler,action,result])
@@ -73,6 +73,7 @@ handle_file = () ->
 
 setup_code_mirror = () ->
   window.ats.compiler = $('#ats-info').attr("data-compiler")
+  window.ats.hashcode = $('#ats-info').attr("data-hashcode")
   buf = $(".code-mirror")
   if buf.length is 0
     return

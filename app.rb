@@ -4,7 +4,8 @@ require 'yaml'
 require 'json'
 require 'riddle'
 require 'open4'
-require 'shellwords'
+
+require 'securerandom'
 
 $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
@@ -14,6 +15,33 @@ $sphinx = Riddle::Client.new
 
 helpers do
   include Rack::Utils
+  
+  def render_flags flags
+    flags.join(" ") unless flags.nil?
+  end
+end
+
+def get_new_hashcode
+  SecureRandom.urlsafe_base64(8)
+end
+
+def save_session hashcode, data
+  raise Sinatra::NotFound unless hashcode =~ /^[A-Za-z0-9\-_]+$/
+  
+  File.open("data/sessions/#{hashcode}","w+") do |session|
+    session.puts(data.to_json)
+  end
+  
+end
+
+def retrieve_session hashcode
+  filename = "data/sessions/#{hashcode}"
+  if File.exists? filename
+    File.open(filename,"r") do |session| 
+      return JSON.parse(session.read)
+    end
+  end
+  Hash.new
 end
 
 def replace_pattern str, pattern, replace
@@ -98,12 +126,14 @@ end
 post '/:compiler/:action' do |compiler,action|
   content_type :json
   res = ""
-  compiler = Shellwords.escape(compiler)
   flags = []
+  save_session params[:hashcode], params
   case action
   when "typecheck"
   when "compile"
   when "run"
+  when "save"
+    return {status:0,output:"Saved Successfully!"}.to_json
   else
     raise Sinatra::NotFound
   end
@@ -118,11 +148,11 @@ post '/:compiler/:action' do |compiler,action|
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
-  #Add formatting for syntax errors.
   error_replacement = "<button class=\"syntax-error\" data-line=\"\\1\" data-char=\"\\2\">line=\\1, offs=\\2</button>"
   formatted = res.split("\n")
   formatted.map! do |line|
-    if /^(&#x2F;tmp|syntax error)/.match(line) #patsopt throws errors in the prelude, only want ours.
+    # patsopt throws errors in the prelude, we only want our errors.
+    if /^(&#x2F;tmp|syntax error)/.match(line) 
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,error_replacement)
     end
     line
@@ -142,22 +172,28 @@ get %r{^/(ats|repos)??/?$} do
 end
 
 get "/code/:compiler" do |compiler|
+  hash = get_new_hashcode
+  redirect "/code/#{compiler}/#{hash}"
+end
+
+get "/code/:compiler/:hash" do |compiler,hash|
+  @session = retrieve_session hash
   actions = []
   canned = ""
   title = ""
-  case compiler 
+  case compiler
   when "ats"
     title = "ATS"
-    canned = open("config/helloworld.dats").read()
-    actions = ["typecheck","compile","run"]
+    canned = @session["input"] ||  open("config/helloworld.dats").read()
+    actions = ["typecheck","compile","run","save"]
   when "patsopt"
     title = "ATS2"
-    canned = open("config/fibonacci.dats").read()
-    actions = ["typecheck"]
+    canned = @session["input"] || open("config/fibonacci.dats").read()
+    actions = ["typecheck","save"]
   else 
     raise Sinatra::NotFound
   end
-  haml :code, locals:{compiler:compiler,actions:actions,canned:canned,title:title}
+  haml :code, locals:{hash:hash,compiler:compiler,actions:actions,canned:canned,title:title}
 end
 
 get "/search" do
