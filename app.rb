@@ -4,6 +4,7 @@ require 'yaml'
 require 'json'
 require 'riddle'
 require 'open4'
+require 'fileutils'
 
 require 'securerandom'
 
@@ -122,31 +123,23 @@ def make_xref folder,repo,path
   output
 end
 
-post '/:compiler/:action' do |compiler,action|
-  content_type :json
+def atscc_jailed param
   res = ""
-  flags = []
-  save_session params[:hashcode], params
-  case action
-  when "typecheck"
-  when "compile"
-  when "run"
-  when "save"
-    return {status:0,output:"Saved Successfully!"}.to_json
-  else
-    raise Sinatra::NotFound
-  end
   input = params.to_json
   jailed_command = "lib/atscc-jailed"
+
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
     stdin.puts(input)
     stdin.close
     res = stdout.read
   end
+
   res = escape_html res
+
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
+
   range_err_replace = <<-eos
  <button class="syntax-error range-error" data-line-start="\\1" data-char-start="\\2"
          data-line-end="\\3" data-char-end="\\4">(\\1,\\2) to (\\3,\\4)</button>
@@ -156,10 +149,11 @@ eos
    line=\\1, offs=\\2 \
  </button>
 eos
+
   formatted = res.split("\n")
   formatted.map! do |line|
     # patsopt throws errors in the prelude, we only want our errors.
-    if /^(&#x2F;tmp|syntax error)/.match(line)
+    if line =~ /^(&#x2F;tmp|syntax error)/
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\).*?\(line=(\d+), offs=(\d+)\)/,
                       range_err_replace)
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,
@@ -168,11 +162,52 @@ eos
     line
   end
   res = formatted.join("\n")
-  {status:status.to_i,output:res}.to_json
+  [status.to_i, res]
+end
+
+def download_project filepath, params
+  if not File.exists? filepath || Dir.exists? "clibs/#{params["arch"]}"
+    raise Sinatra::NotFound
+  end
+
+  if not params["filename"] =~ /^[a-zA-Z0-9\-_]+$/
+    raise Sinatra::NotFound
+  end
+  
+  FileUtils.mkdir("/tmp/#{params["hash"]}")
+  FileUtils.mv(filepath, "/tmp/#{params["hash"]}/#{filepath}.c")
+  FileUtils.cp_r("clibs/#{params["arch"]}", "/tmp/#{params["hash"]}/ats")
+  
+  `tar -czf /tmp/#{params["hash"]}/#{filepath}.tar.gz`
+end
+
+post '/:compiler/:action' do |compiler,action|
+
+  save_session params[:hashcode], params
+  
+  case action
+  when "typecheck"
+  when "download"
+  when "compile"
+  when "run"
+  when "save"
+    content_type :json
+    return {status:0,output:"Saved Successfully!"}.to_json
+  else
+    raise Sinatra::NotFound
+  end
+
+  status, res = atscc_jailed params
+  
+  if action == "download"
+    download_project res, params
+  end
+  
+  content_type :json
+  {status:status,output:res}.to_json
 end
 
 get '/application.js' do
-  #cache_control :public, max_age:"86400"
   coffee :application
 end
 
@@ -208,8 +243,10 @@ end
 
 get "/search" do
   cache_control :public, max_age:"600"
+
   $sphinx.offset = params["offset"] if params["offset"]
   results = $sphinx.query(params["query"], params["indexes"])
+
   haml :search_results, layout:false, locals:{results:results}
 end
 
@@ -219,12 +256,17 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   match = $repos.select {|name,attr| name == repo}
   @repos << match[repo]["ats"] if !match.empty?
   @rel_path = "#{folder}/#{repo}/#{path}"
+
   raise Sinatra::NotFound if not File.exists? @rel_path
+
   return lxr_send_file @rel_path, false if dflag
+
   return listing_of_directory(@rel_path) if File.directory? @rel_path
+
   if !path.match(/\.dats/) && !path.match(/\.sats/)
     return lxr_send_file @rel_path
   end
+
   src = make_xref folder,repo,path
   haml :ats_source, locals:{source:src,title:path}
 end
