@@ -121,7 +121,10 @@ sub compile_ats {
             system @run_cmd;
             chdir("/tmp");
             chmod 0755, @files;
-        } else {
+        } elsif ($options->{"save"}) {
+            #Let the script know which files to collect
+	    print $filename;
+	} else {
             print "Your code has been successfully compiled!\n";
         }
     }
@@ -190,12 +193,13 @@ if( $action eq "typecheck" ) {
         }
     }
     $options->{"run"} = ($action eq "run") ? 1 : 0;
+    $options->{"save"} = ($action eq "download") ? 1 : 0;
 }
 
 @files = $compiler->{"compile"}->($options, $args);
 
 chdir("/tmp");
 
-unlink @files;
+unlink @files unless $options->{"save"};
 
 exit(0);

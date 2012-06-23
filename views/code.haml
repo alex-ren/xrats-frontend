@@ -19,5 +19,8 @@
     %input#attached_file{:type=>"file",:style=>"display:none;"}
     %button.attach_file
       Upload
+    - if download
+      %button.download-c
+        Download C Code
   .cl
 #ats-console

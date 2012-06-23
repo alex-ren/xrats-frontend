@@ -74,7 +74,7 @@ def xref_of_file path, base
   raise Sinatra::NotFound if not File.exists?(path)
   file_folder = File.dirname(path)
   atsopt_path = "/opt/ats/bin/atsopt"
-  pats2html_path = "/opt/postiats/utils/atsyntax/pats2html" #For ATS2
+  cmd = "/opt/postiats/utils/atsyntax/pats2html" #For ATS2
   flag = ""
   if path.match(/\.dats/)
     flag = "--dynamic"
@@ -86,7 +86,7 @@ def xref_of_file path, base
     ENV["PATSHOME"] = "/opt/postiats"
     input = File.open(path).read()
     res = ""
-    status = Open4::popen4(pats2html_path+" "+flag) do |pid,stdin,stdout,stderr|
+    status = Open4::popen4(cmd+" "+flag) do |pid,stdin,stdout,stderr|
       stdin.puts(input)
       stdin.close
       res = stdout.read
@@ -116,6 +116,7 @@ def make_xref folder,repo,path
   else
     raise Sinatra::NotFound
   end
+
   ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{ats_home}"
   output = xref_of_file "#{folder}/#{repo}/#{path}", base
   replace_pattern(output,/a href=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,"a href=\"/ats/#{ats_home}/\\1\"")
@@ -165,20 +166,36 @@ eos
   [status.to_i, res]
 end
 
-def download_project filepath, params
-  if not File.exists? filepath || Dir.exists? "clibs/#{params["arch"]}"
-    raise Sinatra::NotFound
-  end
-
-  if not params["filename"] =~ /^[a-zA-Z0-9\-_]+$/
+def download_project file, params
+  lib = "clibs/#{params["arch"]}"
+  
+  if !(File.exists?(file) && Dir.exists?(lib) \
+       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
     raise Sinatra::NotFound
   end
   
-  FileUtils.mkdir("/tmp/#{params["hash"]}")
-  FileUtils.mv(filepath, "/tmp/#{params["hash"]}/#{filepath}.c")
-  FileUtils.cp_r("clibs/#{params["arch"]}", "/tmp/#{params["hash"]}/ats")
+  base = "/tmp/downloads"
+  dir  = base+"/"+params["hash"]
+  orig = "/tmp/#{file}"
+  src  = dir+"/"+file+".c"
+  liba = dir+"/ats"
   
-  `tar -czf /tmp/#{params["hash"]}/#{filepath}.tar.gz`
+  FileUtils.mkdir_p(dir)
+  FileUtils.mv(orig+"_dats.c", src)
+  FileUtils.cp_r(lib, libp)
+  
+  tar = "/tmp/#{params["hash"]}/#{filepath}.tar.gz"
+  
+  files = [tar.src,liba]
+  
+  `tar -czf #{files.join(" ")}`
+  
+  #nginx needs a path relative to tmp
+  tar.gsub! /^\/tmp\//, ""
+  
+  content_type "application/x-gzip"
+  
+  response.headers['X-Accel-Redirect']= "/export/#{tar}"
 end
 
 post '/:compiler/:action' do |compiler,action|
@@ -196,11 +213,11 @@ post '/:compiler/:action' do |compiler,action|
   else
     raise Sinatra::NotFound
   end
-
+  
   status, res = atscc_jailed params
   
   if action == "download"
-    download_project res, params
+    return download_project res, params
   end
   
   content_type :json
@@ -238,7 +255,10 @@ get "/code/:compiler/:hash" do |compiler,hash|
   else 
     raise Sinatra::NotFound
   end
-  haml :code, locals:{hash:hash,compiler:compiler,actions:actions,canned:canned,title:title}
+  
+  download = actions.include? "compile"
+
+  haml :code, locals:{hash:hash,compiler:compiler,actions:actions,canned:canned,title:title,download:download}
 end
 
 get "/search" do
