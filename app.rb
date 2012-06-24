@@ -5,13 +5,11 @@ require 'json'
 require 'riddle'
 require 'open4'
 require 'fileutils'
-
 require 'securerandom'
 
 $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
-
 
 $sphinx = Riddle::Client.new
 
@@ -120,15 +118,21 @@ def make_xref folder,repo,path
 
   ENV["ATSHOME"] = "#{Dir.pwd}/ats/#{ats_home}"
   output = xref_of_file "#{folder}/#{repo}/#{path}", base
-  replace_pattern(output,/a href=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,"a href=\"/ats/#{ats_home}/\\1\"")
-  replace_pattern(output,/a href=\"#{Dir.pwd}\/repos\/(.*)\"/,"a href=\"/repos/\\1\"")
+  
+  replace_pattern(output,/a href=\"#{Dir.pwd}\/ats\/#{ats_home}\/(.*)\"/,
+                  "a href=\"/ats/#{ats_home}/\\1\"")
+  replace_pattern(output,/a href=\"#{Dir.pwd}\/repos\/(.*)\"/,
+                  "a href=\"/repos/\\1\"")
+  
   output
 end
 
 def atscc_jailed param
   res = ""
   input = params.to_json
+  
   puts input
+  
   jailed_command = "lib/atscc-jailed"
 
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
@@ -147,7 +151,7 @@ def atscc_jailed param
  <button class="syntax-error range-error" data-line-start="\\1" data-char-start="\\2"
          data-line-end="\\3" data-char-end="\\4">(\\1,\\2) to (\\3,\\4)</button>
 eos
-  line_err_replace = <<-eos
+  point_err_replace = <<-eos
  <button class="syntax-error point-error" data-line="\\1" data-char="\\2">\
    line=\\1, offs=\\2 \
  </button>
@@ -160,7 +164,7 @@ eos
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\).*?\(line=(\d+), offs=(\d+)\)/,
                       range_err_replace)
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,
-                      line_err_replace)
+                      point_err_replace)
     end
     line
   end
@@ -178,11 +182,13 @@ def download_project file, params
   src  = dir+"/"+params["filename"]+".c"
   liba = dir+"/ats"
   
-  puts file
-
   if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib) \
        && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
     raise
+  end
+
+  if Dir.exists? (dir)
+    FileUtils.rm_r(dir)
   end
   
   FileUtils.mkdir_p(dir)
@@ -191,16 +197,18 @@ def download_project file, params
   
   tar = "#{dir}/#{params["filename"]}.tar.gz"
   
-  files = [tar,src,liba]
+  files = [tar,src,liba].map do |f|
+    File.basename(f)
+  end
   
-  `tar -czf #{files.join(" ")}`
+  `tar -czf #{tar} --directory=#{dir} #{files.slice(1..2).join(" ")}`
   
   #nginx needs a path relative to tmp
-  tar.gsub! /^\/tmp\//, ""
+  tar.gsub! /^#{$app_config[:chroot_path]}\/tmp\/downloads\//, ""
   
-  content_type "application/x-gzip"
-  
-  response.headers['X-Accel-Redirect']= "/export/#{tar}"
+  response.headers['Content-Type'] = "application/x-gzip"
+  response.headers['Content-Disposition'] = "attachment; filename=#{files[0]}"
+  response.headers['X-Accel-Redirect'] = "/export/#{tar}"
 end
 
 post '/:compiler/:action' do |compiler,action|
@@ -226,7 +234,7 @@ post '/:compiler/:action' do |compiler,action|
   end
   
   content_type :json
-  {status:status,output:res}.to_json
+  {status: status, output: res}.to_json
 end
 
 get '/application.js' do
@@ -263,7 +271,14 @@ get "/code/:compiler/:hash" do |compiler,hash|
   
   download = actions.include? "compile"
 
-  haml :code, locals:{hash:hash,compiler:compiler,actions:actions,canned:canned,title:title,download:download}
+  haml :code, locals: {
+    hash: hash,
+    compiler: compiler,
+    actions: actions,
+    canned: canned,
+    title: title,
+    download: download
+  }
 end
 
 get "/search" do
@@ -272,7 +287,9 @@ get "/search" do
   $sphinx.offset = params["offset"] if params["offset"]
   results = $sphinx.query(params["query"], params["indexes"])
 
-  haml :search_results, layout:false, locals:{results:results}
+  haml :search_results, layout: false, locals: {
+    results: results
+  }
 end
 
 get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|

@@ -1,6 +1,6 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
-#ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash}
+#ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash,"data-arch"=>"x86_64"}
 #code-mirror-wrapper
   %textarea.code-mirror#atscc_input
     = canned
@@ -22,5 +22,7 @@
     - if download
       %button.download-c
         Download C Code
-  .cl
+      Filename:
+      %input#filename{:type=>"text",:value=>@session["filename"]}
+    .cl
 #ats-console

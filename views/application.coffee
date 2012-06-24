@@ -24,7 +24,11 @@ search = (params) ->
 
 trigger_search = () ->
     $("#search-results").css "display", "inline"
-    search({query:$("#search-input").attr("value"),indexes:$('#search-input').attr("data-repos"),offset:0})
+    search({
+      query:$("#search-input").attr("value"),
+      indexes:$('#search-input').attr("data-repos"),
+      offset:0
+    })
 
 setup_search = () ->
   $("#search-submit").bind "click", (event) =>
@@ -32,10 +36,11 @@ setup_search = () ->
   $("#close-search").bind "click", (event) =>
     $("#search-results").css "display", "none"
   $("#search-input").bind "keydown", (event) =>
-    if event.keyCode is 13 then trigger_search()
+    if event.keyCode is 13
+      trigger_search()
 
 get_flags = (name) ->
-  if flags = $("#{name}-flags").val()
+  if flags = $("##{name}-flags").val()
     return flags.split(" ")
   return []
   end
@@ -43,13 +48,21 @@ get_flags = (name) ->
 get_compile_params = () ->
   cflags = get_flags("compile")
   rflags = get_flags("runtime")
-  {input:code_mirror.getValue(),compile_flags:cflags,runtime_flags:rflags, hashcode:window.ats.hashcode}
+  filename = $("#filename").val()
+  if !filename
+    filename = window.ats.hashcode
+  {
+    input:code_mirror.getValue(),
+    compile_flags:cflags,
+    runtime_flags:rflags,
+    hashcode:window.ats.hashcode,
+    arch:window.ats.arch,
+    filename:filename
+  }
 
 compile_code = (action) ->
   compiler = window.ats.compiler
-
   $('#ats-console').html("Waiting for the server...")
-
   $.post(
     "/#{compiler}/#{action}"
     get_compile_params()
@@ -72,8 +85,12 @@ display_compile_results = (res,params) ->
     line = $(element).attr("data-line") - 1
     code_mirror.setLineClass(line,"cm-error","cm-error")
   for element in $(".range-error")
-    from = {line:$(element).attr("data-line-start")-1,ch:$(element).attr("data-char-start")-1}
-    to = {line:$(element).attr("data-line-end")-1,ch:$(element).attr("data-char-end")-1}
+    ls = $(element).attr("data-line-start")-1
+    cs = $(element).attr("data-char-start")-1
+    le = $(element).attr("data-line-end")-1
+    ce = $(element).attr("data-char-end")-1
+    from = {line:ls,ch:cs}
+    to = {line:le,ch:ce}
     marked = code_mirror.markText(from,to,"cm-error")
     marked_ranges.push marked
 
@@ -113,10 +130,7 @@ download_code = () ->
   form = $("<form>")
   form.attr("action","/#{compiler}/download")
   form.attr("method","post")
-  form.attr("id","download-code-form")
   params = get_compile_params()
-  params.arch = "x86_64"
-  params.filename = "foo"
   for item, value of params
     input = switch $.type(value)
             when 'array'
@@ -135,14 +149,21 @@ handle_file = () ->
 setup_code_mirror = () ->
   window.ats.compiler = $('#ats-info').attr("data-compiler")
   window.ats.hashcode = $('#ats-info').attr("data-hashcode")
-
+  window.ats.arch = $('#ats-info').attr("data-arch")
   buf = $(".code-mirror")
+
   if buf.length is 0
     return
+
   jQuery.getScript "/javascripts/codemirror.js", (script,status,xhr) ->
     jQuery.getScript "/javascripts/emacs.js", () ->
-      code_mirror = CodeMirror.fromTextArea(buf[0],{theme:"ambiance",lineNumbers:true,keyMap:"emacs",matchBrackets:true})
-      $(code_mirror.getScrollerElement()).height(500);
+      code_mirror = CodeMirror.fromTextArea(buf[0], {
+          theme:"ambiance",
+          lineNumbers:true,
+          keyMap:"emacs",
+          matchBrackets:true
+      })
+      $(code_mirror.getScrollerElement()).height(500)
       code_mirror.refresh();
 
   $('.atscc-button').bind "click", (event) ->
