@@ -12,6 +12,7 @@ $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
 
+
 $sphinx = Riddle::Client.new
 
 helpers do
@@ -127,6 +128,7 @@ end
 def atscc_jailed param
   res = ""
   input = params.to_json
+  puts input
   jailed_command = "lib/atscc-jailed"
 
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
@@ -140,7 +142,7 @@ def atscc_jailed param
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
-
+  
   range_err_replace = <<-eos
  <button class="syntax-error range-error" data-line-start="\\1" data-char-start="\\2"
          data-line-end="\\3" data-char-end="\\4">(\\1,\\2) to (\\3,\\4)</button>
@@ -163,30 +165,33 @@ eos
     line
   end
   res = formatted.join("\n")
+  
   [status.to_i, res]
 end
 
 def download_project file, params
   lib = "clibs/#{params["arch"]}"
   
-  if !(File.exists?(file) && Dir.exists?(lib) \
-       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
-    raise Sinatra::NotFound
-  end
-  
-  base = "/tmp/downloads"
-  dir  = base+"/"+params["hash"]
-  orig = "/tmp/#{file}"
-  src  = dir+"/"+file+".c"
+  base = $app_config[:chroot_path]+"/tmp/downloads"
+  dir  = base+"/"+params["hashcode"]
+  orig = "#{$app_config[:chroot_path]}/tmp/#{file}"
+  src  = dir+"/"+params["filename"]+".c"
   liba = dir+"/ats"
   
+  puts file
+
+  if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib) \
+       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
+    raise
+  end
+  
   FileUtils.mkdir_p(dir)
-  FileUtils.mv(orig+"_dats.c", src)
-  FileUtils.cp_r(lib, libp)
+  FileUtils.cp(orig+"_dats.c", src)
+  FileUtils.cp_r(lib, liba)
   
-  tar = "/tmp/#{params["hash"]}/#{filepath}.tar.gz"
+  tar = "#{dir}/#{params["filename"]}.tar.gz"
   
-  files = [tar.src,liba]
+  files = [tar,src,liba]
   
   `tar -czf #{files.join(" ")}`
   

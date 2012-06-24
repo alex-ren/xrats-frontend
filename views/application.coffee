@@ -111,17 +111,20 @@ input_of_value = (item,value) ->
 download_code = () ->
   compiler = window.ats.compiler
   form = $("<form>")
-  form.attr("method","POST")
   form.attr("action","/#{compiler}/download")
+  form.attr("method","post")
+  form.attr("id","download-code-form")
   params = get_compile_params()
-  for item in params
-    input = switch $.type(params[item])
+  params.arch = "x86_64"
+  params.filename = "foo"
+  for item, value of params
+    input = switch $.type(value)
             when 'array'
-              input_of_array(item,params[item])
+              input_of_array(item,value)
             else
-              input_of_value(item,params[item])
+              input_of_value(item,value)
     form.append input
-  form.submit
+  form.submit()
 
 handle_file = () ->
   if this.files.length == 0
