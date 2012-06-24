@@ -13,6 +13,22 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
+class Dir
+  #Check if a file is a child of some directory
+  def self.contains? dir, file    
+    begin 
+      rdir  = File.realpath dir
+      rfile = File.realpath file
+      puts rdir
+      puts rfile
+    rescue Errno::ENOENT
+      return false
+    end
+    
+    rfile =~ /^#{rdir}/
+  end
+end
+
 helpers do
   include Rack::Utils
   
@@ -35,7 +51,7 @@ end
 
 def retrieve_session hashcode
   filename = "data/sessions/#{hashcode}"
-  if File.exists? filename
+  if File.exists?(filename) && Dir.contains?("data/sessions",filename)
     File.open(filename,"r") do |session| 
       return JSON.parse(session.read)
     end
@@ -182,11 +198,12 @@ def download_project file, params
   src  = dir+"/"+params["filename"]+".c"
   liba = dir+"/ats"
   
-  if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib) \
+  if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib)        \
+       && $app_config[:allowed_archs].include?(params["arch"]) \
        && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
-    raise
+    raise Sinatra::NotFound
   end
-
+  
   if Dir.exists? (dir)
     FileUtils.rm_r(dir)
   end
@@ -299,8 +316,10 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   @repos << match[repo]["ats"] if !match.empty?
   @rel_path = "#{folder}/#{repo}/#{path}"
 
-  raise Sinatra::NotFound if not File.exists? @rel_path
-
+  if !(File.exists?(@rel_path))
+    raise Sinatra::NotFound
+  end
+  
   return lxr_send_file @rel_path, false if dflag
 
   return listing_of_directory(@rel_path) if File.directory? @rel_path
