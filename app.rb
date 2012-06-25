@@ -15,12 +15,10 @@ $sphinx = Riddle::Client.new
 
 class Dir
   #Check if a file is a child of some directory
-  def self.contains? dir, file    
+  def contains? file    
     begin 
-      rdir  = File.realpath dir
+      rdir  = File.realpath self.path
       rfile = File.realpath file
-      puts rdir
-      puts rfile
     rescue Errno::ENOENT
       return false
     end
@@ -50,9 +48,11 @@ def save_session hashcode, data
 end
 
 def retrieve_session hashcode
-  filename = "data/sessions/#{hashcode}"
-  if File.exists?(filename) && Dir.contains?("data/sessions",filename)
-    File.open(filename,"r") do |session| 
+  sessions = Dir.new("data/sessions")
+  filename = "#{sessions.path}/#{hashcode}"
+  
+  if File.exists?(filename) && sessions.contains?(filename)
+    File.open(filename,"r") do |session|
       return JSON.parse(session.read)
     end
   end
@@ -147,8 +147,6 @@ def atscc_jailed param
   res = ""
   input = params.to_json
   
-  puts input
-  
   jailed_command = "lib/atscc-jailed"
 
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
@@ -189,21 +187,36 @@ eos
   [status.to_i, res]
 end
 
-def download_project file, params
+def download_project params
+  
+  file = params["original_file"]
+  
   lib = "clibs/#{params["arch"]}"
   
-  base = $app_config[:chroot_path]+"/tmp/downloads"
-  dir  = base+"/"+params["hashcode"]
+  basepath = $app_config[:chroot_path]+"/tmp/downloads"
+  base = nil
+
+  while true do 
+    begin
+      base = Dir.new basepath
+      break;
+    rescue Errno::ENOENT
+      FileUtils.mkdir_p(basepath)
+    end
+  end
+  
+  dir = base.path+"/"+params["hashcode"]
   orig = "#{$app_config[:chroot_path]}/tmp/#{file}"
   src  = dir+"/"+params["filename"]+".c"
   liba = dir+"/ats"
   
   if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib)        \
        && $app_config[:allowed_archs].include?(params["arch"]) \
-       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/)
+       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/           \
+       && ( !Dir.exists?(dir) || base.contains?(dir) ))
     raise Sinatra::NotFound
   end
-  
+
   if Dir.exists? (dir)
     FileUtils.rm_r(dir)
   end
@@ -234,9 +247,10 @@ post '/:compiler/:action' do |compiler,action|
   
   case action
   when "typecheck"
-  when "download"
   when "compile"
   when "run"
+  when "download"
+    return download_project params
   when "save"
     content_type :json
     return {status:0,output:"Saved Successfully!"}.to_json
@@ -245,10 +259,6 @@ post '/:compiler/:action' do |compiler,action|
   end
   
   status, res = atscc_jailed params
-  
-  if action == "download"
-    return download_project res, params
-  end
   
   content_type :json
   {status: status, output: res}.to_json
@@ -314,20 +324,33 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   @repos = [repo]
   match = $repos.select {|name,attr| name == repo}
   @repos << match[repo]["ats"] if !match.empty?
-  @rel_path = "#{folder}/#{repo}/#{path}"
+  @rel_path = [folder,repo,path].join("/")
+  
+  error = case folder
+          when "ats"
+            !($ats.include? repo)
+          when "repos"
+            match.empty?
+          end
 
-  if !(File.exists?(@rel_path))
+  base = Dir.new [folder,repo].join("/")
+  
+  if !( !error && File.exists?(@rel_path) \
+        && base.contains?(@rel_path) )
     raise Sinatra::NotFound
   end
   
   return lxr_send_file @rel_path, false if dflag
-
+  
   return listing_of_directory(@rel_path) if File.directory? @rel_path
 
-  if !path.match(/\.dats/) && !path.match(/\.sats/)
+  if !path.match(/\.(dats|sats)/)
     return lxr_send_file @rel_path
   end
-
-  src = make_xref folder,repo,path
-  haml :ats_source, locals:{source:src,title:path}
+  
+  src = make_xref folder, repo, path
+  haml :ats_source, locals:{ 
+    source: src,
+    title: path
+  }
 end

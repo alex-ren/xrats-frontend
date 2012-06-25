@@ -122,13 +122,13 @@ sub compile_ats {
             chdir("/tmp");
             chmod 0755, @files;
         } elsif ($options->{"save"}) {
-            #Let the script know which files to collect
+            #Let the caller know what files to collect
 	    print $filename;
 	} else {
             print "Your code has been successfully compiled!\n";
         }
     }
-    return @files;
+    return $success, @files;
 }
 
 sub compile_patsopt {
@@ -139,10 +139,10 @@ sub compile_patsopt {
     @compile_cmd = ($options->{"path"});
     push @compile_cmd, split(" ","--dynamic /tmp/$filename.dats");
     push @compile_cmd, @{ $options->{"compile_flags"} };
-    if( fork_exec_err(@compile_cmd) ) {
+    if( $success = fork_exec_err(@compile_cmd) ) {
 	print "Your code has been successfully typechecked!";
     }
-    return ($filename);
+    return $success, $filename;
 }
 
 %compilers = ("ats"=>
@@ -189,17 +189,19 @@ if( $action eq "typecheck" ) {
     foreach $flag (@{$args->{"runtime_flags"}}) {
        #The user can give whatever they want to their program.
 	if( $flag =~ m/(.*)/ ) {
-	   push @{ $options->{"runtime_flags"} }, $1;
+	     push @{ $options->{"runtime_flags"} }, $1;
         }
     }
+
+
     $options->{"run"} = ($action eq "run") ? 1 : 0;
-    $options->{"save"} = ($action eq "download") ? 1 : 0;
+    $options->{"save"} = ($args->{"save"}) ? 1 : 0;
 }
 
-@files = $compiler->{"compile"}->($options, $args);
+($success, @files) = $compiler->{"compile"}->($options, $args);
 
 chdir("/tmp");
 
 unlink @files unless $options->{"save"};
 
-exit(0);
+exit(!$success);

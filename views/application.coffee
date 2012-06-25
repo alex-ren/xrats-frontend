@@ -60,20 +60,30 @@ get_compile_params = () ->
     filename:filename
   }
 
-compile_code = (action) ->
+
+# Send a command to the compiler.
+compile_code = (action,pm,call) ->
   compiler = window.ats.compiler
+  params = get_compile_params()
+  for k,v of pm
+    params[k] = v
   $('#ats-console').html("Waiting for the server...")
   $.post(
     "/#{compiler}/#{action}"
-    get_compile_params()
+    params
     (res) ->
-      display_compile_results(res,{action:action})
+      res.action = action
+      if call
+        $('#ats-console').html("")
+        call(res)
+      else
+        display_compile_results(res)
     "json")
 
-display_compile_results = (res,params) ->
+display_compile_results = (res) ->
   compiler = window.ats.compiler
   result = if res.status == 0 then 'success' else 'failed'
-  window._gaq.push(['_trackEvent',compiler,params.action,result])
+  window._gaq.push(['_trackEvent',compiler,res.action,result])
   cnt_lines = code_mirror.lineCount()
   for i in [0..cnt_lines]
     code_mirror.setLineClass(i)
@@ -123,22 +133,28 @@ input_of_value = (item,value) ->
   i.attr("value",value)
   return i
 
-# Build a standard HTML form and submit it.
-# This will give the user a download prompt.
+# First, compile the current code to see if it
+# works alright. Then, construct a form and
+# submit it to prompt the download.
 download_code = () ->
-  compiler = window.ats.compiler
-  form = $("<form>")
-  form.attr("action","/#{compiler}/download")
-  form.attr("method","post")
-  params = get_compile_params()
-  for item, value of params
-    input = switch $.type(value)
-            when 'array'
-              input_of_array(item,value)
-            else
-              input_of_value(item,value)
-    form.append input
-  form.submit()
+  compile_code "compile",{save:1}, (res) ->
+    if res.status != 0
+      display_compile_results(res)
+      return
+    compiler = window.ats.compiler
+    form = $("<form>")
+    form.attr("action","/#{compiler}/download")
+    form.attr("method","post")
+    params = get_compile_params()
+    params.original_file = res.output
+    for item, value of params
+      input = switch $.type(value)
+              when 'array'
+                input_of_array(item,value)
+              else
+                input_of_value(item,value)
+      form.append input
+    form.submit()
 
 handle_file = () ->
   if this.files.length == 0
