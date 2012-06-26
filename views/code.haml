@@ -1,7 +1,7 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
 #ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash,
-          "data-arch"=>@session["arch"],
+          "data-arch"=>(@session["arch"] || "x86_64"),
           "data-compile-flags"=>(@session["compile_flags"] || []).to_json,
           "data-runtime-flags"=>(@session["runtime_flags"] || []).to_json,
           "data-export-file"=>@session["filename"]}
