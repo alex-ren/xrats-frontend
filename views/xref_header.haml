@@ -1,26 +1,27 @@
-%span.header_section
-  ATS LXR
-%span.header_section
-  - total = ""
-  - @rel_path.split("/").each do |link|
-    - total += "/#{link}"
-    - href = total
-    - href += "/" if File.directory?(Dir.pwd+total)
-    = "/"
-    %a{:href=>href,:target=>"_blank"}
-      = "#{link}"
-- if File.file? @rel_path
-  %span.header_section
-    %a{:href=>"/download/#{@rel_path}",:target=>"_blank"}
-      Download
-%span.search
-  Search:
-  %input#search-input{:type=>"text","data-repos"=>"#{@repos.join(" ")}"}
-  %input#search-submit{:type=>"button",:value=>"submit"}
-.cl
-#search-results
-  %h2
-    Results
-    %input#close-search{:type=>"button",:value=>"[ close ]"}
-    .cl
-  #search-listing
+- @extra = haml :search_box
+%a.btn.btn-navbar{"data-toggle"=>"collapse","data-target"=>".nav-collapse"}
+  .icon-bar
+  .icon-bar
+  .icon-bar
+%a.brand{:href=>"/",:target=>"_blank"}
+  ATS
+.nav-collapse
+  %ul.nav
+    - total = ""
+    - folders = @rel_path.split("/")
+    - folders.each_with_index do |link,index|
+      - total += "/#{link}"
+      - href = total
+      - href += "/" if File.directory?(Dir.pwd+total)
+      %li
+        %a{:href=>href,:target=>"_blank"}
+          = "#{link}"
+      - if index < folders.length - 1
+        %li.divider-vertical
+    - if File.file? @rel_path
+      %li.divider-vertical
+      %li
+        %a{:href=>"/download/#{@rel_path}",:target=>"_blank"}
+          Download
+.navbar-form.pull-right
+  %input#search-input.span2{:type=>"text","data-repos"=>"#{@repos.join(" ")}","placeholder"=>"Search"}

@@ -1,28 +1,35 @@
 - @title = "Try ATS In The Browser"
 - @header = haml :code_header
-#ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash,"data-arch"=>"x86_64"}
+#ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash,
+          "data-arch"=>@session["arch"],
+          "data-compile-flags"=>(@session["compile_flags"] || []).to_json,
+          "data-runtime-flags"=>(@session["runtime_flags"] || []).to_json,
+          "data-export-file"=>@session["filename"]}
 #code-mirror-wrapper
   %textarea.code-mirror#atscc_input
     = canned
-%h3
-  #{title} Compiler Output
-  #atscc-buttons
-    - actions.each do |action|
-      %button.atscc-button{"data-action"=>action}
-        = action.capitalize
-    - if actions.include? "compile"
-      Compile Flags:
-      %input#compile-flags.arguments{:type=>"text",:value=>render_flags(@session["compile_flags"])}
-    - if actions.include? "run"
-      Runtime Arguments:
-      %input#runtime-flags.arguments{:type=>"text",:value=>render_flags(@session["runtime_flags"])}
-    %input#attached_file{:type=>"file",:style=>"display:none;"}
-    %button.attach_file
-      Upload
-    - if download
-      %button.download-c
-        Download C Code
-      Filename:
-      %input#filename{:type=>"text",:value=>@session["filename"]}
-    .cl
+%input#attached_file{:type=>"file",:style=>"display:none;"}
+
+#atsctl.pull-right
+  .btn-group
+    .btn#ats-action{"data-action"=>nil} Actions
+    .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
+      %span.caret
+    %ul.dropdown-menu
+      - actions.each do |action|
+        %li
+          %a.switch-state{"data-action"=>action}
+            = action.capitalize
+      %li.divider
+      %li
+        %a.switch-state{"data-action"=>"upload"}
+          Upload
+      - if download
+        %li
+          %a.switch-state{"data-action"=>"download"}
+            Download C
+#ctl-workspace.pull-right
+.cl
+%h3#console-title
+  #{title} Output
 #ats-console

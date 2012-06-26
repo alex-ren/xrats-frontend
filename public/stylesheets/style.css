@@ -35,9 +35,9 @@ body {
 }
 
 #search-results {
-    float:right;
-    position:relative;
-    margin-top:10px;
+    margin-left:39%;
+    position:fixed;
+    margin-top:0px;
     width:600px;
     height:500px;
     background: #FAFAFA;
@@ -60,6 +60,18 @@ body {
     cursor: pointer;
     background: none;
     color:#3216B0;
+}
+
+#atsctl {
+    margin: 15px 0px 5px 0px;
+}
+
+#ctl-workspace {
+    margin: 15px 15px 5px 0px;
+}
+
+#console-title {
+    margin-top: -30px;
 }
 
 .paginate {
@@ -170,15 +182,12 @@ body {
     text-decoration:underline;
 }
 
-#code-mirror-wrapper {
-    margin-top:25px;
-}
-
 #ats-console {
     height:150px;
     width:100%;
     background:#FAFAFA;
-    overflow-y:scroll;
+    overflow-y:auto;
+    padding:10px 0px;
 }
 
 #ats-info {
@@ -194,8 +203,9 @@ body {
     width:100px;
 }
 
-#ats-console {
-    padding:10px;
+.form-label {
+    margin-right:10px;
+    font-weight:bold;
 }
 
 .syntax-error {

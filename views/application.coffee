@@ -10,6 +10,85 @@ marked_ranges = []
 this.ats = {}
 this.ats.compile_code = compile_code
 
+this.ats.dispatcher = {
+  typecheck: () ->
+    compile_code("typecheck")
+  save: () ->
+    compile_code("save")
+  compile: () ->
+    compile_code("compile")
+  run: () ->
+    compile_code("run")
+  upload: () ->
+    $('#attached_file').click()
+  download: () ->
+    download_code()
+}
+
+
+this.ats.setup = {
+  compile: () ->
+    i = $("<input>")
+    i.attr("id","compile-flags")
+    i.attr("type","text")
+    i.attr("value",window.ats.compile_flags.join(" "))
+    span = $("<span>")
+    span.attr("class","form-label")
+    span.html("Compiler Flags: ")
+    $("#ctl-workspace").append(span)
+    $("#ctl-workspace").append(i)
+  run: () ->
+    i = $("<input>")
+    i.attr("id","runtime-flags")
+    i.attr("type","text")
+    i.attr("value",window.ats.runtime_flags.join(" "))
+    span = $("<span>")
+    span.attr("class","form-label")
+    span.html("Runtime Arguments: ")
+    $("#ctl-workspace").append(span)
+    $("#ctl-workspace").append(i)
+  download: () ->
+    i = $("<input>")
+    i.attr("id","download-filename")
+    i.attr("type","text")
+    i.attr("value",window.ats.filename)
+    span = $("<span>")
+    span.attr("class","form-label")
+    span.html("Filename: ")
+    $("#ctl-workspace").append(span)
+    $("#ctl-workspace").append(i)
+    span = $("<span>")
+    span.attr("class","form-label")
+    span.html("OS: ")
+    $("#ctl-workspace").append(span)
+    i = $("<input>")
+    i.attr("type","radio")
+    i.attr("name","arch")
+    i.attr("value","x86_64")
+    if window.ats.arch == "x86_64"
+      i.attr("checked","true")
+    $("#ctl-workspace").append(i)
+    $("#ctl-workspace").append("64bit Linux")
+    i = $("<input>")
+    i.attr("type","radio")
+    i.attr("name","arch")
+    i.attr("value","i386")
+    if window.ats.arch == "i386"
+      i.attr("checked","true")
+    $("#ctl-workspace").append(i)
+    $("#ctl-workspace").append("32bit Linux")
+}
+
+this.ats.save = {
+  compile: () ->
+    window.ats.compile_flags = get_flags("compile")
+  run: () ->
+    window.ats.runtime_flags = get_flags("runtime")
+  download: () ->
+    window.ats.filename = $("#download-filename").val()
+    window.ats.arch = $('input:radio[name=arch]:checked').val()
+}
+
 search = (params) ->
   $.get(
     "/search"
@@ -46,20 +125,17 @@ get_flags = (name) ->
   end
 
 get_compile_params = () ->
-  cflags = get_flags("compile")
-  rflags = get_flags("runtime")
-  filename = $("#filename").val()
+  filename = window.ats.filename
   if !filename
     filename = window.ats.hashcode
   {
-    input:code_mirror.getValue(),
-    compile_flags:cflags,
-    runtime_flags:rflags,
-    hashcode:window.ats.hashcode,
-    arch:window.ats.arch,
-    filename:filename
+    input: code_mirror.getValue(),
+    compile_flags: window.ats.compile_flags,
+    runtime_flags: window.ats.runtime_flags,
+    hashcode: window.ats.hashcode,
+    arch: window.ats.arch,
+    filename: filename
   }
-
 
 # Send a command to the compiler.
 compile_code = (action,pm,call) ->
@@ -166,6 +242,12 @@ setup_code_mirror = () ->
   window.ats.compiler = $('#ats-info').attr("data-compiler")
   window.ats.hashcode = $('#ats-info').attr("data-hashcode")
   window.ats.arch = $('#ats-info').attr("data-arch")
+  compile_flags = $('#ats-info').attr("data-compile-flags")
+  runtime_flags = $('#ats-info').attr("data-runtime-flags")
+  window.ats.filename = $('#ats-info').attr("data-export-file")
+  window.ats.compile_flags = jQuery.parseJSON(compile_flags)
+  window.ats.runtime_flags = jQuery.parseJSON(runtime_flags)
+
   buf = $(".code-mirror")
 
   if buf.length is 0
@@ -182,18 +264,28 @@ setup_code_mirror = () ->
       $(code_mirror.getScrollerElement()).height(500)
       code_mirror.refresh();
 
-  $('.atscc-button').bind "click", (event) ->
-    compile_code($(this).attr('data-action'))
+  $('.switch-state').bind "click", (event) ->
+    label = $(this).html()
+    action = $(this).attr("data-action")
+    old_action = $("#ats-action").attr("data-action")
+    $("#ats-action").html(label)
+    $("#ats-action").attr("data-action",action)
+    if save = window.ats.save[old_action]
+      save()
+    $("#ctl-workspace").html("")
+    if init = window.ats.setup[action]
+      init()
 
-  $('.download-c').bind "click", (event) ->
-    download_code()
+  $('#ats-action').bind "click", (event) ->
+    action = $(this).attr("data-action")
+    if cmd = window.ats.dispatcher[action]
+      save = window.ats.save[action]
+      if save
+        save()
+      cmd()
 
   file_reader = new FileReader()
   file_reader.onload = (evnt) ->
     code_mirror.setValue(evnt.target.result)
 
-  attached_file = $('#attached_file')
-  attached_file.bind "change", handle_file
-  $('.attach_file').bind "click", (e) ->
-    if(attached_file)
-      attached_file.click()
+  $('#attached_file').bind "change", handle_file

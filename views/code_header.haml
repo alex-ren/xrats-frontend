@@ -3,10 +3,17 @@
   .icon-bar
   .icon-bar
 %a.brand{:href=>"/",:target=>"_blank"}
-  ATS LXR
-%span.header_section
-  Try out ATS below in this interactive editor.
-  Keybindings are set to mimic emacs, but don't try to use C-w in Chrome...
-%span.header_section
-  Shortcuts: C-D typecheck M-c compile
-.cl
+  ATS
+
+%ul.nav
+  %li.dropdown
+    %a.dropdown-toggle{:href=>"#","data-toggle"=>"dropdown"}
+      Versions
+      %b.caret
+    %ul.dropdown-menu
+      %li
+        %a{:href=>"/code/ats"}
+          ATS
+      %li
+        %a{:href=>"/code/patsopt"}
+          ATS2

@@ -25,6 +25,8 @@
     %body
       .navbar.navbar-fixed-top
         .navbar-inner
-          = @header
+          .container
+            = @header
+      = @extra
       .container
         = yield

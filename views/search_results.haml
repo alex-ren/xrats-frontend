@@ -4,11 +4,12 @@
       %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
         = match[:attributes]["path"]
 %p #{results[:total_found]} matching files found.
-%ul.pagination
+.pagination.pagination-centered
   - pages = results[:total_found] / $sphinx.limit
   - current_page = ($sphinx.offset.to_i / $sphinx.limit)
-  - for i in 0..pages
-    %li
+  %ul
+    - for i in 0..pages
       - active = (i == current_page) ? "active" : ""
-      %button.paginate{"data-offset"=>i*$sphinx.limit, :class=>active}
-        = i+1
+      %li{:class=>active}
+        %a.paginate{"data-offset"=>i*$sphinx.limit}
+          = i+1
