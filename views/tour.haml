@@ -1,0 +1,9 @@
+- @title = "A Tour of ATS"
+- @header = haml :default_header
+- $javascripts.push "/tour.js"
+.row
+  .span12#index
+  .span6#code
+    = ats_editor({compiler: "ats", actions: ["typecheck","compile","run"]})
+  .span6#content
+    = erb :slides
