@@ -63,7 +63,7 @@ body {
 }
 
 #atsctl {
-    margin: 15px 0px 5px 0px;
+    margin: 15px 0px 15px 0px;
 }
 
 #ctl-workspace {
@@ -71,7 +71,7 @@ body {
 }
 
 #console-title {
-    margin-top: -30px;
+    margin: 15px 0px 15px 0px;
 }
 
 .paginate {

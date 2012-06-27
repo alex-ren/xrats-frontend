@@ -13,6 +13,9 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
+#This is request specific, probably should come up with something better.
+$javascripts = []
+
 class Dir
   #Check if a file is a child of some directory
   def contains? file    
@@ -32,6 +35,17 @@ helpers do
   
   def render_flags flags
     flags.join(" ") unless flags.nil?
+  end
+
+  def ats_editor flags
+    flags[:runtime_flags] ||= []
+    flags[:compile_flags] ||= []
+    flags[:arch] ||= "x86_64"
+    flags[:filename] ||= "foo"
+    flags[:canned] ||= ""
+    flags[:download] ||= false
+    flags[:title] ||= nil
+    haml :editor, locals: flags
   end
 end
 
@@ -243,7 +257,7 @@ end
 
 post '/:compiler/:action' do |compiler,action|
 
-  save_session params[:hashcode], params
+  save_session(params[:hashcode], params) if params[:hashcode]
   
   case action
   when "typecheck"
@@ -266,6 +280,10 @@ end
 
 get '/application.js' do
   coffee :application
+end
+
+get '/tour.js' do
+  coffee :tour
 end
 
 get %r{^/(ats|repos)??/?$} do
@@ -304,8 +322,16 @@ get "/code/:compiler/:hash" do |compiler,hash|
     actions: actions,
     canned: canned,
     title: title,
-    download: download
+    download: download,
+    arch: @session["arch"] || "x86_64",
+    runtime_flags: @session["runtime_flags"] || [],
+    compile_flags: @session["compile_flags"] || [],
+    filename: @session["filename"]
   }
+end
+
+get "/tour" do
+  haml :tour
 end
 
 get "/search" do
@@ -343,7 +369,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   return lxr_send_file @rel_path, false if dflag
   
   return listing_of_directory(@rel_path) if File.directory? @rel_path
-
+  
   if !path.match(/\.(dats|sats)/)
     return lxr_send_file @rel_path
   end

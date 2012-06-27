@@ -1,14 +1,14 @@
 $(document).ready ->
   setup_search()
-  setup_code_mirror()
+  setup_ide()
 
-code_mirror = 0
 file_reader = 0
 
 marked_ranges = []
 
 this.ats = {}
 this.ats.compile_code = compile_code
+this.ats.code_mirror = 0
 
 this.ats.dispatcher = {
   typecheck: () ->
@@ -48,9 +48,7 @@ this.ats.setup = {
     $("#ctl-workspace").append(span)
     $("#ctl-workspace").append(i)
   download: () ->
-    i = $("<input>")
-    i.attr("id","download-filename")
-    i.attr("type","text")
+    i = $('<input id="download-filename" type="text">')
     i.attr("value",window.ats.filename)
     span = $("<span>")
     span.attr("class","form-label")
@@ -129,7 +127,7 @@ get_compile_params = () ->
   if !filename
     filename = window.ats.hashcode
   {
-    input: code_mirror.getValue(),
+    input: window.ats.code_mirror.getValue(),
     compile_flags: window.ats.compile_flags,
     runtime_flags: window.ats.runtime_flags,
     hashcode: window.ats.hashcode,
@@ -160,16 +158,16 @@ display_compile_results = (res) ->
   compiler = window.ats.compiler
   result = if res.status == 0 then 'success' else 'failed'
   window._gaq.push(['_trackEvent',compiler,res.action,result])
-  cnt_lines = code_mirror.lineCount()
+  cnt_lines = window.ats.code_mirror.lineCount()
   for i in [0..cnt_lines]
-    code_mirror.setLineClass(i)
+    window.ats.code_mirror.setLineClass(i)
   for range in marked_ranges
     range.clear()
   marked_ranges = []
   $("#ats-console").html("<pre>#{res.output}</pre>")
   for element in $(".point-error")
     line = $(element).attr("data-line") - 1
-    code_mirror.setLineClass(line,"cm-error","cm-error")
+    window.ats.code_mirror.setLineClass(line,"cm-error","cm-error")
   for element in $(".range-error")
     ls = $(element).attr("data-line-start")-1
     cs = $(element).attr("data-char-start")-1
@@ -177,14 +175,14 @@ display_compile_results = (res) ->
     ce = $(element).attr("data-char-end")-1
     from = {line:ls,ch:cs}
     to = {line:le,ch:ce}
-    marked = code_mirror.markText(from,to,"cm-error")
+    marked = window.ats.code_mirror.markText(from,to,"cm-error")
     marked_ranges.push marked
 
   focus_point = (point) ->
-    coords = code_mirror.charCoords(point,"local")
-    code_mirror.scrollTo(coords.x,coords.y)
-    code_mirror.setCursor(point)
-    code_mirror.focus()
+    coords = window.ats.code_mirror.charCoords(point,"local")
+    window.ats.code_mirror.scrollTo(coords.x,coords.y)
+    window.ats.code_mirror.setCursor(point)
+    window.ats.code_mirror.focus()
   $(".point-error").bind "click", (e) ->
     line = $(this).attr("data-line") - 1
     char = $(this).attr("data-char") - 1
@@ -238,7 +236,9 @@ handle_file = () ->
   file = this.files[0]
   file_reader.readAsText(file)
 
-setup_code_mirror = () ->
+# Populate the ats object with options given in the HTML
+# document.
+load_ide_options = () ->
   window.ats.compiler = $('#ats-info').attr("data-compiler")
   window.ats.hashcode = $('#ats-info').attr("data-hashcode")
   window.ats.arch = $('#ats-info').attr("data-arch")
@@ -248,6 +248,10 @@ setup_code_mirror = () ->
   window.ats.compile_flags = jQuery.parseJSON(compile_flags)
   window.ats.runtime_flags = jQuery.parseJSON(runtime_flags)
 
+setup_ide = () ->
+
+  load_ide_options()
+
   buf = $(".code-mirror")
 
   if buf.length is 0
@@ -255,14 +259,14 @@ setup_code_mirror = () ->
 
   jQuery.getScript "/javascripts/codemirror.js", (script,status,xhr) ->
     jQuery.getScript "/javascripts/emacs.js", () ->
-      code_mirror = CodeMirror.fromTextArea(buf[0], {
+      window.ats.code_mirror = CodeMirror.fromTextArea(buf[0], {
           theme:"ambiance",
           lineNumbers:true,
           keyMap:"emacs",
           matchBrackets:true
       })
-      $(code_mirror.getScrollerElement()).height(500)
-      code_mirror.refresh();
+      $(window.ats.code_mirror.getScrollerElement()).height(500)
+      window.ats.code_mirror.refresh();
 
   $('.switch-state').bind "click", (event) ->
     label = $(this).html()
@@ -279,13 +283,12 @@ setup_code_mirror = () ->
   $('#ats-action').bind "click", (event) ->
     action = $(this).attr("data-action")
     if cmd = window.ats.dispatcher[action]
-      save = window.ats.save[action]
-      if save
+      if save = window.ats.save[action]
         save()
       cmd()
 
   file_reader = new FileReader()
   file_reader.onload = (evnt) ->
-    code_mirror.setValue(evnt.target.result)
+    window.ats.code_mirror.setValue(evnt.target.result)
 
   $('#attached_file').bind "change", handle_file

@@ -4,3 +4,37 @@
   .icon-bar
 %a.brand{:href=>"/",:target=>"_blank"}
   ATS
+.nav-collapse
+  %ul.nav
+    %li.divider-vertical
+    %li.dropdown
+      %a.dropdown-toggle{:href=>"#","data-toggle"=>"dropdown"}
+        Cross Reference
+        %b.caret
+      %ul.dropdown-menu
+        - $repos.each do |name,attr|
+          %li
+            %a{:href=>"repos/#{name}/"}
+              = name
+        %li.divider
+        - $ats.each do |name|
+          %li
+            %a{:href=>"ats/#{name}/"}
+              = name
+    %li.divider-vertical
+    %li.dropdown
+      %a.dropdown-toggle{:href=>"#","data-toggle"=>"dropdown"}
+        Code Editor
+        %b.caret
+      %ul.dropdown-menu
+        %li
+          %a{:href=>"/code/ats"}
+            ATS
+        %li
+          %a{:href=>"/code/patsopt"}
+            ATS2
+    %li.divider-vertical
+    %li
+      %a{:href=>"/tour"}
+        Tour
+    %li.divider-vertical
