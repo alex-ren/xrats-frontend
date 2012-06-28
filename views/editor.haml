@@ -1,9 +1,9 @@
 #ats-ide
   #ats-info{"data-compiler"=>compiler,"data-hashcode"=>hash,
             "data-arch"=>(arch),
-            "data-compile-flags"=>(compile_flags).to_json,
-            "data-runtime-flags"=>(runtime_flags).to_json,
-            "data-export-file"=>filename}
+            "data-compile_flags"=>(compile_flags).to_json,
+            "data-runtime_flags"=>(runtime_flags).to_json,
+            "data-filename"=>filename}
   %textarea.code-mirror#atscc_input
     = canned
   %input#attached_file{:type=>"file",:style=>"display:none;"}

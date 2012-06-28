@@ -286,6 +286,10 @@ get '/tour.js' do
   coffee :tour
 end
 
+get '/editor.js' do
+  coffee :editor
+end
+
 get %r{^/(ats|repos)??/?$} do
   cache_control :public, max_age:"86400"
   haml :index
