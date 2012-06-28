@@ -13,9 +13,6 @@ $ats = YAML.load_file("config/ats.yml")["versions"]
 
 $sphinx = Riddle::Client.new
 
-#This is request specific, probably should come up with something better.
-$javascripts = []
-
 class Dir
   #Check if a file is a child of some directory
   def contains? file    
@@ -46,6 +43,11 @@ helpers do
     flags[:download] ||= false
     flags[:title] ||= nil
     haml :editor, locals: flags
+  end
+  
+  def add_javascript file
+    @javascripts ||= []
+    @javascripts.push file
   end
 end
 

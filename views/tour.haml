@@ -1,10 +1,10 @@
 - @title = "A Tour of ATS"
 - @header = haml :default_header, locals: {links: [{id: "toggle-index",text:"Index"}]}
 
-- $javascripts.push "/javascripts/codemirror.js"
-- $javascripts.push "/javascripts/emacs.js"
-- $javascripts.push "/editor.js"
-- $javascripts.push "/tour.js"
+- add_javascript "/javascripts/codemirror.js"
+- add_javascript "/javascripts/emacs.js"
+- add_javascript "/editor.js"
+- add_javascript "/tour.js"
 .row
   %ul.nav.nav-pills.nav-stacked#index
   .span6#code
