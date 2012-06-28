@@ -2,12 +2,16 @@ $(document).ready () ->
   setup()
   show(0)
 
+editor = null
 slides = []
 
 slide = null
 slidenum = 0
 
 setup = () ->
+
+  editor = ats_ide("ats-ide")
+
   index = $("#index").hide()
 
   $("#toggle-index").bind "click", () ->
@@ -60,7 +64,7 @@ show = (i) ->
   if slide != null
     oldslide = $(slide).hide()
     if !oldslide.hasClass("nocode")
-      save(oldslide.data("index")) || oldslide.data("code",window.ats.code_mirror.getValue())
+      save(oldslide.data("index")) || oldslide.data("code",editor.code_mirror.getValue())
 
   slidenum = i
   slide = slides[i]
@@ -73,8 +77,8 @@ show = (i) ->
     $("#ats-ide").show()
     $("#ats-console").empty()
     console.log(s.data("code"))
-    window.ats.code_mirror.setValue(load(i) || s.data("code") )
-    window.ats.code_mirror.focus()
+    editor.code_mirror.setValue(load(i) || s.data("code") )
+    editor.code_mirror.focus()
 
   url = location.href
   j = url.indexOf("#")
@@ -96,7 +100,7 @@ show_index = () ->
 save = (page) ->
   if !supports_html5_storage()
     return
-  localStorage["page"+page] = window.ats.code_mirror.getValue()
+  localStorage["page"+page] = editor.code_mirror.getValue()
 
 savelast = () ->
   if !supports_html5_storage()
