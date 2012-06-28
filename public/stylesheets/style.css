@@ -194,13 +194,17 @@ body {
     display:none;
 }
 
-#atscc-buttons {
-    display: inline;
-    margin-left: 25px;
+#index {
+    list-style-type:decimal;
 }
 
-#atscc-buttons .arguments {
-    width:100px;
+#index li {
+    font-size:16px;
+    cursor: pointer;
+}
+
+.slide {
+    font-size:15px;
 }
 
 .form-label {

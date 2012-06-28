@@ -14,12 +14,12 @@
       %ul.dropdown-menu
         - $repos.each do |name,attr|
           %li
-            %a{:href=>"repos/#{name}/"}
+            %a{:href=>"/repos/#{name}/"}
               = name
         %li.divider
         - $ats.each do |name|
           %li
-            %a{:href=>"ats/#{name}/"}
+            %a{:href=>"/ats/#{name}/"}
               = name
     %li.divider-vertical
     %li.dropdown
@@ -38,3 +38,9 @@
       %a{:href=>"/tour"}
         Tour
     %li.divider-vertical
+  - if defined? links
+    %ul.nav.pull-right
+      - links.each do |l|
+        %li
+          %button.btn{:id=>l[:id]}
+            = l[:text]

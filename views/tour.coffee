@@ -1,12 +1,23 @@
 $(document).ready () ->
   setup()
-  show(0)
+  if location.href.indexOf("#") < 0
+    showlast()
+  else
+    show(slidenumber_of_url(location.href))
+
+  document.onkeydown = page_up_down
 
 editor = null
 slides = []
 
 slide = null
 slidenum = 0
+
+$(window).unload () ->
+  if !supports_html5_storage()
+    return
+  savelast(slidenum)
+  save(slidenum)
 
 setup = () ->
 
@@ -39,20 +50,20 @@ setup = () ->
     nav
     if h2.length > 0
       $("<div/>").addClass("cl").insertAfter(h2)
-      nav = $("<div/>").addClass("tour-nav")
-      if i+1 < slides.length
-        btn = $("<button>").bind("click", () ->
-          show(i+1)
-        ).text("NEXT").addClass("next").addClass("pull-right")
-        nav.append(btn)
+      nav = $("<div/>").addClass("btn-group").addClass("pull-right")
       if i > 0
-        btn = $("<button>").bind("click", () ->
+        btn = $('<button class="btn">').bind("click", () ->
           show(i-1)
-        ).text("PREV").addClass("prev").addClass("pull-right")
+        ).text("PREV").addClass("prev")
+        nav.append(btn)
+      if i+1 < slides.length
+        btn = $('<button class="btn">').bind("click", () ->
+          show(i+1)
+        ).text("NEXT").addClass("next")
         nav.append(btn)
       nav.insertBefore(h2)
       curr_i = i
-      entry = $("<li>").text(h2.text()).bind "click", () ->
+      entry = $("<li>").append($('<a/>').text(h2.text())).bind "click", () ->
         hide_index()
         show(curr_i)
       index.append(entry)
@@ -72,12 +83,13 @@ show = (i) ->
 
   if s.hasClass("nocode")
     $("#ats-ide").hide()
-    $("content").attr("class","span12")
+    $("#content").attr("class","span12")
   else
     $("#ats-ide").show()
     $("#ats-console").empty()
+    $("#content").attr("class","span6")
     console.log(s.data("code"))
-    editor.code_mirror.setValue(load(i) || s.data("code") )
+    editor.code_mirror.setValue(load(i) || s.data("code"))
     editor.code_mirror.focus()
 
   url = location.href
@@ -85,6 +97,7 @@ show = (i) ->
   if j >= 0
     url = url.substr(0,j)
   url += "#"+(slidenum+1).toString()
+  console.log(url)
   location.href = url
 
 hide_index = () ->
@@ -105,12 +118,50 @@ save = (page) ->
 savelast = () ->
   if !supports_html5_storage()
     return
-  localStorage["lastpage"] = slidenum
+  localStorage["last"] = slidenum
+
+showlast = () ->
+  if !( supports_html5_storage() && ( 'last' in localStorage) )
+    show(0)
+    return
+
+  show(parseInt(localStorage['last']))
 
 load = (page) ->
   if !supports_html5_storage()
     return
   return localStorage["page"+page]
+
+reset = () ->
+  s = $(slide)
+  s.data("code",s.data("original"))
+  editor.setValue(s.data("code"))
+  save(slidenum)
+
+slidenumber_of_url = (url) ->
+  i = url.indexOf("#")
+  if(i < 0)
+    return 0;
+  frag = unescape(url.substr(i+1))
+  if /\d+$/.test(frag)
+    i = parseInt(frag)
+    id = i - 1
+    if (id) < 0 || (id) > slides.length
+      return 0
+    return id
+  return 0
+
+page_up_down = (event) ->
+  e = window.event || event
+  if e.keyCode == 33 #Page up
+    e.preventDefault()
+    show(slidenum-1)
+    return false
+  if e.keyCode == 34 #Page down
+    e.preventDefault()
+    show(slidenum+1)
+    return false
+  return true
 
 supports_html5_storage = () ->
 	try

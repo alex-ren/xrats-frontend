@@ -1,19 +1,66 @@
-<div class="slide">
+<div class="slide nocode">
 <h2>Welcome to ATS!</h2>
 <p>ATS is an exciting new language that introduces a style of programming with 
-theorem proving.</p>
+theorem proving. Before getting to the uses of dependent types and linear logic, 
+going over the basics of ATS syntax will help lower the learning curve of getting
+started with ATS.</p>
+
+<p>This tutorial is meant as an informal guide to getting your feet wet with ATS
+without going to the trouble, or entertainment, of bootstrapping ATS yourself.
+For a more complete reference for ATS, see Hongwei Xi's book,
+<a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">Introduction to Programming in ATS</a>
+</div>
+
+<div class="slide">
+<h2>Hello World!</h2>
+<p>As with every language, we start with Hello World.</p>
+<p>You'll notice that the editor has a few options to choose from 
+for running your code. ATS is a pretty complicated language, and one
+of its best qualities is a type checker that allows you to check constraints
+in your code without compiling it. This can be very useful as you can start
+with nothing but an abstract interface and reason about how your code will work. 
+</p>
+
+<p>
+With this approach, most of your debugging will be spent with the typechecker.
+</p>
+
+<p>With hello world, there isn't much to check so we can
+quickly compile and run our code. The compile option tells ATS to compile your code
+down to C and then use gcc to produce an executable.</p>
 <div>
 implement main () = println! "Hello World!"
 </div>
 </div>
+
 <div class="slide">
-<h2>A Quick Aside</h2>
-<p>ATS is a feature rich language, and as such its syntax differs greatly from
-other languages. The following note on negation will help out later.</p>
+     <h2>A Quick Aside</h2>
+     <p>ATS is a feature rich language and its syntax differs greatly from
+     other languages. The following note on negation will help out later.</p>
 <div>
 implement main () = let
     val () = println! 5
     val () = println! ~5 //negation
  in end
+</div>
+</div>
+
+<div class="slide">
+<h2>Fibonacci</h2>
+<p>Here's a slow way of finding the nth
+Fibonacci number. The first thing to notice about ATS is that is 
+a call by value functional programming language and a good deal of its
+syntax comes from ML.</p>
+
+<p>fib gives a good example of how to define a function in ATS. Every
+parameter must have a type associated with it, and the colon seperates
+the type of the arguments from the function's result type.</p>
+<div>
+fun fib (n:int) : int = 
+    if n < 2 then n
+    else
+        fib(n-1) + fib(n-2)
+
+implement main () = println! ("F(10) = ", fib(10))
 </div>
 </div>
