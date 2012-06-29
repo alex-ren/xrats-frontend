@@ -15,8 +15,8 @@ $sphinx = Riddle::Client.new
 
 class Dir
   #Check if a file is a child of some directory
-  def contains? file    
-    begin 
+  def contains? file
+    begin
       rdir  = File.realpath self.path
       rfile = File.realpath file
     rescue Errno::ENOENT

@@ -1,29 +1,40 @@
 <div class="slide nocode">
-<h2>Welcome to ATS!</h2>
-<p>ATS is an exciting new language that introduces a style of programming with 
-theorem proving. Before getting to the uses of dependent types and linear logic, 
-going over the basics of ATS syntax will help lower the learning curve of getting
-started with ATS.</p>
+<h2>Welcome to ATS</h2>
+
+<p>ATS is an exciting new language that introduces a style of programming with
+theorem proving. Since it's new, it can be a pretty challenging to learn but
+doing so will inevitably make you a better programmer.</p>
 
 <p>This tutorial is meant as an informal guide to getting your feet wet with ATS
-without going to the trouble, or entertainment, of bootstrapping ATS yourself.
-For a more complete reference for ATS, see Hongwei Xi's book,
-<a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">Introduction to Programming in ATS</a>
+without going to the trouble or entertainment of bootstrapping the compiler yourself.
+For a more complete reference, see Hongwei Xi's book,
+<a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">Introduction to Programming in ATS</a></p>
+
+<p>This guide starts off with an overview of functional programming in ATS, followed
+by a description of using dependent types with theorem proving, and finally an
+introduction to linear types. The tutorial assumes you have no experience with any of
+these topics.</p>
+
+<p>Some slides will have some exercises so you can gain
+some experience coming up with solutions in ATS on your own. A solution
+to any of them can probably be found in Professor Xi's book, just in case
+you get stuck.</p>
 </div>
 
 <div class="slide">
 <h2>Hello World!</h2>
 <p>As with every language, we start with Hello World.</p>
+
 <p>You'll notice that the editor has a few options to choose from 
-for running your code. ATS is a pretty complicated language, and one
-of its best qualities is a type checker that allows you to check constraints
-in your code without compiling it. This can be very useful as you can start
-with nothing but an abstract interface and reason about how your code will work. 
+for running your code. One of ATS' best qualities is a type checker that 
+allows you to check constraints in your code without compiling it. This can be
+very useful as you can start with nothing but an abstract interface and build
+the higher level logic of your application.
 </p>
 
-<p>
-With this approach, most of your debugging will be spent with the typechecker.
-</p>
+<p>With this approach, you will find most of your debugging 
+will be spent trying to please the typechecker, and less time tracking down
+bugs in gdb.</p>
 
 <p>With hello world, there isn't much to check so we can
 quickly compile and run our code. The compile option tells ATS to compile your code
@@ -36,12 +47,19 @@ implement main () = println! "Hello World!"
 <div class="slide">
      <h2>A Quick Aside</h2>
      <p>ATS is a feature rich language and its syntax differs greatly from
-     other languages. The following note on negation will help out later.</p>
+     other languages. The following note on negation will help out later. Also,
+     when checking for equality we only use one equal sign.</p>
+     <p>This may seem overly trivial, but when I first learned ATS
+     these little things always tripped me up.</p>
 <div>
 implement main () = let
     val () = println! 5
     val () = println! ~5 //negation
- in end
+    val equal = 5 = ~5   //equality
+    in
+      if ~equal then 
+        println!("5 doesn't equal -5")
+    end
 </div>
 </div>
 
@@ -53,14 +71,287 @@ a call by value functional programming language and a good deal of its
 syntax comes from ML.</p>
 
 <p>fib gives a good example of how to define a function in ATS. Every
-parameter must have a type associated with it, and the colon seperates
-the type of the arguments from the function's result type.</p>
+parameter must have a name and a type associated with it. After the argument
+list, we provide the type of the function's result.</p>
+
+<p>Of course, you can define function interfaces that are to be implemented later.
+In ATS, we identify these with the "extern" qualifier. When we go to implement 
+the function, we use "implement".</p>
+
+<p>There are several ways to comment code in ATS. The (* *) pair comments out a 
+region of text, and allows comments to be nested. Regular // C style comments are 
+supported as well. You can also use //// to comment out all the remaining lines in 
+a file.</p>
+
+<h3>Conditional Expressions</h3>
+<p>Conditonals follow an "if condition then result else result" pattern. Omitting an else case will 
+cause a void type to be returned for the statement if the condition is false.</p>
+
+<h2>Exercise</h2>
+<p>Implement the fact interface given in the example. Then, try it out 
+by uncommenting the call to it in main.</p>
 <div>
+
 fun fib (n:int) : int = 
     if n < 2 then n
     else
         fib(n-1) + fib(n-2)
 
-implement main () = println! ("F(10) = ", fib(10))
+(* fact - compute n factorial - n! *)
+extern
+fun fact (n:int) : int
+
+// implement fact (n) = 
+
+implement main () = 
+    begin
+        println! ("F(10) = ", fib(10));
+        //println! ("10! = ", fact(10));
+    end
+
+////
+All of this will be ignored...
+</div>
+</div>
+
+<div class="slide">
+<h2>Booleans</h2>
+<p>The standard || and && boolean operators work in ATS. As mentioned earlier, 
+the ~ operator specifies negation.</p>
+<div>
+implement main () =
+  let
+    val p = true
+    val q = false
+    val a = p && q
+    val b = p || q
+    val res =  ~(a || b)
+  in
+    begin
+        println! ("p = ", p);
+        println! ("q = ", q);
+        println! (" ¬( (p ∧ q) ∨ (p ∨ q) ) = ", res);
+    end
+  end
+</div>
+</div>
+
+<div class="slide">
+<h2>Variable Scope</h2>
+<p>In the previous examples, you saw the "let" construct. This allows us to
+define values in specific contexts. As you can see, variables have scope in a
+let expression from when they are defined and the expression inside "in end".
+For values defined outside any function, they have global scope.</p>
+
+<p>
+Keep in mind that vals aren't like global variables. For this example, 
+I can read the value of x in any scope I want, but I cannot change its 
+value for any scope above my current one.
+</p>
+
+<p>It's important to understand that when you use val, you're doing pattern
+matching on the evaluated expression. If you provide a constructor that does
+not match the type of a value, then the typechecker will complain.</p>
+
+<p>For example, the println! function we've been using returns a void type, 
+so we use the void constructor, (), to capture its value.</p>
+
+<p>val is useful for unpacking simple data structures and binding values to 
+variables, but sometimes we need to do pattern matching against values 
+that can take on multiple constructors. Before we talk about such data 
+types, lets go over the basics of control flow and looping in ATS.</p>
+<div>
+val x = "I have global scope!"
+
+fun display_x () : void = 
+	println!("global x is = ", x)
+
+implement main () = 
+   let
+       val () = println! x
+       val y = 45 //binds the value of 45 to y
+       val _ = 10 //undscore matches all types
+   in
+       if y > 30 then 
+         let
+            val x = 10
+            val z = 15
+          in 
+            begin
+                println! ("y+z = ", y+z);
+                println! ("x = ", x);
+                display_x();
+            end
+        end (* z is now out of scope *)
+   end (* y is now out of scope *)
+</div>
+</div>
+
+<div class="slide">
+<h2>begin / end</h2>
+<p>begin end expressions are useful for momentarily switching
+to an imperative style. Sometime this makes sense, especially for
+performing I/O. Every expression in a begin end expression must 
+return a void type and end with an semi-colon just like in C.</p>
+
+<p>In this example we show that begin end expressions are simply
+syntactic sugar for let expressions consisting entirely of void
+values.</p>
+
+<div>
+val quote1 = "Happy Thanksgivin' Pilgrims"
+val quote2 = "I'm John Wayne."
+
+val use_let = false
+
+implement main () =
+   if use_let then
+      let
+        val () = println! quote1
+        val () = println! quote2
+      in end
+   else
+      begin
+        println! quote1;
+        println! quote2;
+      end
+</div>
+</div>
+
+<div class="slide">
+<h2>Where Blocks</h2>
+<p>Where blocks are handy for using values and
+defining them after they are used. You can
+think of them as reverse let expressions where
+you first provide a context and then bind values
+to it.</p>
+<div>
+implement main () = 
+    println! ( area(w,h) ) where {
+        val w = 10
+        val h = 20
+        fun area(x:int, y:int) : int = x * y
+    }
+</div>
+</div>
+
+<div class="slide">
+<h2>For Loops</h2>
+
+<p>While ATS does have for and while loops, the preferred style
+is to use tail recursion whenever possible. The main idea behind
+tail recursion is to accumulate the result of a recursive function
+in the function parameters so that the compiler can optimize out the
+recursive calls with jumps. This may seem ludicrous; we are avoiding
+imperative style so that the compiled code will be imperative anyway.</p>
+
+<p>Aside from recursive functions being more expressive, doing things
+this way will provide great value to our code when we start using the
+type system to verify the correctness of our functions.</p>
+
+<p>For now, here's an example of the popular
+<a href="http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html"
+target="blank">fizz buzz problem.</a></p>
+
+<p>As you can see, ATS allows you to define functions within let expressions. 
+We'll go over this more later, but for now this should suffice for most loops
+in simple programs.</p>
+
+<p>This pattern is similar to a basic for loop you would find in a more 
+imperative language.</p>
+
+<div>
+fun fizzbuzz () : void = let
+    fun loop (i:int, max:int) : void = let
+        val () = if (i mod 3) = 0 then 
+                   println! "fizz"
+        val () = if (i mod 5) = 0 then
+                   println! "buzz"
+        val () = if (i mod 3) != 0 && 
+                    (i mod 5) != 0 then
+                   println! i
+        in
+           if i < max then
+              loop(i+1,max)
+           else
+              ()
+        end
+    in loop(1,100) end
+
+implement main () = fizzbuzz()
+</div>
+</div>
+
+<div class="slide">
+
+<h2>While Loops</h2>
+<p>While loops are even easier to abstract to recursion than for loops. In
+this example, we wait for a condition to be true.</p>
+
+<p>We also make use of a random number interface provided by the C library.
+staload allows us to access interfaces defined in other files, and when we follow
+the call with a name, we put all the functions defined in that file within a
+namespace.</p>
+
+<p>You can check out the functions defined in random.sats
+<a href="http://xrats.illtyped.com/ats/ats028/libc/SATS/random.sats"
+   target="_blank">here</a>.
+</p>
+
+<div>
+staload Rand = "libc/SATS/random.sats"
+
+implement main () =
+    let
+      // access a function in a namespace
+      val () = $Rand.srand48_with_time()
+
+      fun loop () : void = let
+          val res = $Rand.drand48() < 0.5
+       in 
+          if res then
+             println! "Finished!"
+          else
+             loop()
+       end
+    in 
+       loop()
+    end
+</div>
+</div>
+
+<div class="slide">
+<h2>Faster Fibonacci</h2>
+<p>To reinforce the idea of tail recursion, let's revisit
+the fibonacci function. What slowed down the old one so much
+is that to find any nth number, you needed to find about 2<sup>n</sup>
+other fibonacci numbers. If we accumulate the last two fibonacci numbers 
+in the parameter list, we'll speed up the computation and get an optimized
+loop so we can find larger fibonacci numbers.</p>
+
+<p>You'll notice that as you increase n you start to get some weird results.
+The int type we use here is exactly the same as the int you would use in your
+C programs and, consequently, it is susceptible to integer overflow. This is a good
+time and sit back and realize you are still working in a environment very
+similar to C.</p>
+
+<p>Of course, if you want to use arbitrary precision integers, there are lots
+of libraries out there, and since ATS seamlessly wraps around C code, we can
+use them fairly easily.</p>
+
+<h3>Closures</h3>
+<p>You'll notice we were able to use.</p>
+<div>
+fun fib (n:int) : int = let
+    fun loop (i:int, k1:int, k2:int)
+         :&lt;cloref1&gt; int =
+        if i < n  then
+           loop(i+1,k2,k1+k2)
+        else
+           k1
+    in loop(0, 0, 1) end
+
+implement main () =
+   println! ("f(40) = ",fib(40))
 </div>
 </div>
