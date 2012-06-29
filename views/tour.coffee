@@ -41,6 +41,7 @@ setup = () ->
       s.data("index",i)
       s.data("code",code.text().trim())
       s.data("original", code.text().trim())
+      s.data("compiler_flags", code.data("compiler_flags")||[])
 
     content = $('<div class="content">')
     content.html(s.html())
@@ -90,6 +91,7 @@ show = (i) ->
     $("#content").attr("class","span6")
     console.log(s.data("code"))
     editor.code_mirror.setValue(load(i) || s.data("code"))
+    editor.compiler_flags = s.data("compiler_flags")
     editor.code_mirror.focus()
 
   url = location.href

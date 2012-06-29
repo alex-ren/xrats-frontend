@@ -15,10 +15,9 @@ by a description of using dependent types with theorem proving, and finally an
 introduction to linear types. The tutorial assumes you have no experience with any of
 these topics.</p>
 
-<p>Some slides will have some exercises so you can gain
-some experience coming up with solutions in ATS on your own. A solution
-to any of them can probably be found in Professor Xi's book, just in case
-you get stuck.</p>
+<p>Some slides will have exercises so you can gain experience coming up with 
+solutions in ATS on your own. A solution to any of them can probably be found 
+in Professor Xi's book, just in case you get stuck.</p>
 </div>
 
 <div class="slide">
@@ -128,9 +127,9 @@ implement main () =
     val res =  ~(a || b)
   in
     begin
-        println! ("p = ", p);
-        println! ("q = ", q);
-        println! (" ¬( (p ∧ q) ∨ (p ∨ q) ) = ", res);
+      println! ("p = ", p);
+      println! ("q = ", q);
+      println! ("¬( (p ∧ q) ∨ (p ∨ q) ) = ", res);
     end
   end
 </div>
@@ -241,13 +240,13 @@ implement main () =
 <p>While ATS does have for and while loops, the preferred style
 is to use tail recursion whenever possible. The main idea behind
 tail recursion is to accumulate the result of a recursive function
-in the function parameters so that the compiler can optimize out the
+in the parameters so that the compiler can optimize out the
 recursive calls with jumps. This may seem ludicrous; we are avoiding
 imperative style so that the compiled code will be imperative anyway.</p>
 
 <p>Aside from recursive functions being more expressive, doing things
-this way will provide great value to our code when we start using the
-type system to verify the correctness of our functions.</p>
+this way will provide enormous value when we start using the
+type system to verify properties of our functions.</p>
 
 <p>For now, here's an example of the popular
 <a href="http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html"
@@ -258,24 +257,39 @@ We'll go over this more later, but for now this should suffice for most loops
 in simple programs.</p>
 
 <p>This pattern is similar to a basic for loop you would find in a more 
-imperative language.</p>
+imperative language. In fact, here's how the ATS compiler could interpret 
+this loop.
+<code>
+<pre>
+int i, max;
+max = 100;
+for(i = 1; i <= max; i++) {
+    if i % 3 == 0
+       printf("fizz\n");
+    if i % 5 == 0
+       printf("buzz\n");
+    if i % 3 && i % 5
+       printf("%d\n",i);
+}
+</pre>
+</code>
 
+</p>
 <div>
 fun fizzbuzz () : void = let
-    fun loop (i:int, max:int) : void = let
-        val () = if (i mod 3) = 0 then 
-                   println! "fizz"
-        val () = if (i mod 5) = 0 then
-                   println! "buzz"
-        val () = if (i mod 3) != 0 && 
-                    (i mod 5) != 0 then
-                   println! i
-        in
-           if i < max then
-              loop(i+1,max)
-           else
-              ()
-        end
+    fun loop (i:int, max:int) : void = 
+        if i <= max then let
+           val () = if (i mod 3) = 0 then 
+                       println! "fizz"
+           val () = if (i mod 5) = 0 then
+                       println! "buzz"
+           val () = if (i mod 3) != 0 &&
+                       (i mod 5) != 0 then
+                       println! i
+           in
+             loop(i+1,max)
+           end
+        else ()
     in loop(1,100) end
 
 implement main () = fizzbuzz()
@@ -340,7 +354,20 @@ of libraries out there, and since ATS seamlessly wraps around C code, we can
 use them fairly easily.</p>
 
 <h3>Closures</h3>
-<p>You'll notice we were able to use.</p>
+<p>You'll notice we were able to access the value of n from inside the loop
+function. This is a great example of a closure. Closures are simply expressions 
+that are attached to an environment and may be applied to values. Applying
+closures to values (i.e. a function call) yields a new value. In this example,
+loop's environment consists of a value n, and we apply it to (0, 0, and 1). As loop
+is defined, this evaluates to the nth fibonacci number. Closures are similar to lambda expressions, but lambdas do not have access to values defined outside
+of the expression.</p>
+
+<p>We identify functions as closures by adding &lt;cloref1&gt; to the colon before
+specifying the function's return type. In ATS there are a few different types of 
+closures, but at this point cloref1 will be the easiest to use.</p>
+
+<h3>Exercise</h3>
+<p>Rewrite the factorial function you wrote earlier using tail recursion.</p>
 <div>
 fun fib (n:int) : int = let
     fun loop (i:int, k1:int, k2:int)
@@ -353,5 +380,43 @@ fun fib (n:int) : int = let
 
 implement main () =
    println! ("f(40) = ",fib(40))
+</div>
+</div>
+
+<div class="slide">
+<h2>Big Integers in ATS</h2>
+<p>Since we want to find the largest fibonacci number our machine
+can handle, we need to use a special type of int. Luckily, the ATS
+library has a pretty easy interface to the GMP library.</p>
+
+<p>If you check out the compile options by going to the "Compile"
+tab in the editor, you'll see that we've added a flag to compilation.
+This is because we need to link the GMP library into our executable. If
+you remove, it you'll see ld complain about missing symbols. For a 
+good overview on making and user C libraries, click <a href="http://users.actcom.co.il/~choo/lupg/tutorials/libraries/unix-c-libraries.html">here</a>.</p>
+<div data-compiler_flags='["-lgmp"]'>
+staload "libats/SATS/intinf.sats"
+dynload "libats/DATS/intinf.dats"
+
+fun fib (n:int) : [r:int] intinf r = let
+    fun loop {r1,r2:int}
+        (i:int, k1:intinf r1, k2:intinf r2)
+         :&lt;cloref1&gt; [r3:int] intinf r3 =
+        if i < n  then let
+           val k3 = k1+k2
+           val () = intinf_free(k1)
+         in loop(i+1,k2,k3) end
+        else let
+           val () = intinf_free(k2)
+        in k1 end
+    val f0 = intinf_make(0)
+    val f1 = intinf_make(1)
+    in loop(0, f0, f1) end
+
+implement main () = let
+  val f = fib(1000)
+  val () = println! ("f(1000) = ", f)
+  val () = intinf_free(f)
+  in end
 </div>
 </div>
