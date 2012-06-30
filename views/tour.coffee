@@ -41,7 +41,7 @@ setup = () ->
       s.data("index",i)
       s.data("code",code.text().trim())
       s.data("original", code.text().trim())
-      s.data("compiler_flags", code.data("compiler_flags")||[])
+      s.data("compile_flags", code.data("compile_flags")||[])
 
     content = $('<div class="content">')
     content.html(s.html())
@@ -89,9 +89,8 @@ show = (i) ->
     $("#ats-ide").show()
     $("#ats-console").empty()
     $("#content").attr("class","span6")
-    console.log(s.data("code"))
     editor.code_mirror.setValue(load(i) || s.data("code"))
-    editor.compiler_flags = s.data("compiler_flags")
+    editor.compile_flags = s.data("compile_flags") || []
     editor.code_mirror.focus()
 
   url = location.href
@@ -99,7 +98,6 @@ show = (i) ->
   if j >= 0
     url = url.substr(0,j)
   url += "#"+(slidenum+1).toString()
-  console.log(url)
   location.href = url
 
 hide_index = () ->

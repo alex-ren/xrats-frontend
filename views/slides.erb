@@ -346,7 +346,7 @@ loop so we can find larger fibonacci numbers.</p>
 <p>You'll notice that as you increase n you start to get some weird results.
 The int type we use here is exactly the same as the int you would use in your
 C programs and, consequently, it is susceptible to integer overflow. This is a good
-time and sit back and realize you are still working in a environment very
+time and sit back and realize you are still working in an environment very
 similar to C.</p>
 
 <p>Of course, if you want to use arbitrary precision integers, there are lots
@@ -394,14 +394,33 @@ tab in the editor, you'll see that we've added a flag to compilation.
 This is because we need to link the GMP library into our executable. If
 you remove, it you'll see ld complain about missing symbols. For a 
 good overview on making and user C libraries, click <a href="http://users.actcom.co.il/~choo/lupg/tutorials/libraries/unix-c-libraries.html">here</a>.</p>
-<div data-compiler_flags='["-lgmp"]'>
+
+<p>Note the _make and _free functions being called in this code. These
+are wrappers around memory allocation and deallocation calls that manage
+the memory associated with our large integers. You may not realize it, but
+you're directly handling heap allocated memory from within ATS. In ATS,
+when you deal with objects like this they take on what's called a 
+linear type. You don't need to know much about these now, but just for fun,
+comment out one of the calls to intinf_free and see what happens.</p>
+
+<p>You'll notice that the ATS compiler will not let you compile your code,
+because you have misused memory. In this case, you've preserved
+memory when you were suppose to consume it, i.e. free it. In very few
+languages can you get this level of safeguarding without incurring any
+runtime overheads in the resulting executable.</p>
+
+<h3>Exercise</h3>
+
+<p>Write a function that finds the 12th prime Fibonacci number.</p>
+
+<div data-compile_flags='["-lgmp"]'>
 staload "libats/SATS/intinf.sats"
 dynload "libats/DATS/intinf.dats"
 
-fun fib (n:int) : [r:int] intinf r = let
-    fun loop {r1,r2:int}
-        (i:int, k1:intinf r1, k2:intinf r2)
-         :&lt;cloref1&gt; [r3:int] intinf r3 =
+fun fib (n:int) : Intinf = let
+    fun loop
+        (i:int, k1: Intinf, k2: Intinf)
+         :&lt;cloref1&gt; Intinf =
         if i < n  then let
            val k3 = k1+k2
            val () = intinf_free(k1)
