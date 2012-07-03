@@ -1,7 +1,7 @@
 <div class="slide nocode">
 <h2>Welcome to ATS</h2>
 
-<p>ATS is an exciting new language that introduces a style of programming with
+<p>ATS is a new language that introduces a style of programming with
 theorem proving. Since it's new, it can be a pretty challenging to learn but
 doing so will inevitably make you a better programmer.</p>
 
@@ -9,6 +9,9 @@ doing so will inevitably make you a better programmer.</p>
 without going to the trouble or entertainment of bootstrapping the compiler yourself.
 For a more complete reference, see Hongwei Xi's book,
 <a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">Introduction to Programming in ATS</a></p>
+
+<p>For a more succinct reference, check out the <a href="http://en.wikipedia.org/wiki/ATS_(programming_language)" target="_blank">
+ATS Wikipedia Page</a>.</p>
 
 <p>This guide starts off with an overview of functional programming in ATS, followed
 by a description of using dependent types with theorem proving, and finally an
@@ -38,6 +41,9 @@ bugs in gdb.</p>
 <p>With hello world, there isn't much to check so we can
 quickly compile and run our code. The compile option tells ATS to compile your code
 down to C and then use gcc to produce an executable.</p>
+
+<p>If you really get lost in the weeds, just choose the reset option and
+you can start over.</p>
 <div>
 implement main () = println! "Hello World!"
 </div>
@@ -359,7 +365,8 @@ function. This is a great example of a closure. Closures are simply expressions
 that are attached to an environment and may be applied to values. Applying
 closures to values (i.e. a function call) yields a new value. In this example,
 loop's environment consists of a value n, and we apply it to (0, 0, and 1). As loop
-is defined, this evaluates to the nth fibonacci number. Closures are similar to lambda expressions, but lambdas do not have access to values defined outside
+is defined, this evaluates to the nth fibonacci number. Closures are similar to lambda 
+expressions, but lambdas do not have access to values defined outside
 of the expression.</p>
 
 <p>We identify functions as closures by adding &lt;cloref1&gt; to the colon before
@@ -392,22 +399,26 @@ library has a pretty easy interface to the GMP library.</p>
 <p>If you check out the compile options by going to the "Compile"
 tab in the editor, you'll see that we've added a flag to compilation.
 This is because we need to link the GMP library into our executable. If
-you remove, it you'll see ld complain about missing symbols. For a 
-good overview on making and user C libraries, click <a href="http://users.actcom.co.il/~choo/lupg/tutorials/libraries/unix-c-libraries.html">here</a>.</p>
+you remove, it you'll see ld complain about missing symbols. For a
+good overview on making and using C libraries,
+<a href="http://users.actcom.co.il/~choo/lupg/tutorials/libraries/unix-c-libraries.html"
+target="_blank">this article</a> is very helpful.</p>
 
 <p>Note the _make and _free functions being called in this code. These
 are wrappers around memory allocation and deallocation calls that manage
-the memory associated with our large integers. You may not realize it, but
+manage our large integers. You may not realize it, but
 you're directly handling heap allocated memory from within ATS. In ATS,
-when you deal with objects like this they take on what's called a 
+when you deal with objects like this they take on what's called a
 linear type. You don't need to know much about these now, but just for fun,
 comment out one of the calls to intinf_free and see what happens.</p>
 
-<p>You'll notice that the ATS compiler will not let you compile your code,
+<p>You'll notice that the ATS compiler will not let you compile your code
 because you have misused memory. In this case, you've preserved
-memory when you were suppose to consume it, i.e. free it. In very few
-languages can you get this level of safeguarding without incurring any
-runtime overheads in the resulting executable.</p>
+memory when you were suppose to consume it, i.e. free it. If you don't
+free k1 inside loop, then the pointer loses scope and we have no way
+to access it and becomes a memory leak. In very few
+languages can you get this level of safeguarding without incurring
+runtime overheads in the executable.</p>
 
 <h3>Exercise</h3>
 
@@ -437,5 +448,196 @@ implement main () = let
   val () = println! ("f(1000) = ", f)
   val () = intinf_free(f)
   in end
+</div>
+</div>
+
+
+<div class="slide">
+<h2>Tuples</h2>
+<p>ATS provides an easy way to group values together into
+tuples. A tuple does not strictly need two elements, but can
+contain any number needed. To access an element
+inside a tuple just reference it via its position starting
+with 0.</p>
+
+<p>In this example, we make great use of pattern matching
+on tuple types. This allow us to "unwrap" tuples and bind
+their contents to variables.</p>
+
+<p>Notice how we're able to pass as many objects to println as we
+want. This is done by creating a tuple with an arbitrary number of
+elements, and then applying the println function to that tuple.</p>
+
+<h3>typedef</h3>
+<p>The typedef declaration allows us to define equivalence between
+two types. In this example, we say a point is equivalent to a tuple
+consisting of two integers. This is done for convenience and good
+practice.
+</p>
+
+<h3>Exercise</h3>
+<p>Write a function that computes the 
+<a href="http://en.wikipedia.org/wiki/Dot_product" 
+target="_blank">dot product</a> of two
+points.</p>
+
+<div>
+typedef point  = (int, int) //x and y coordinate
+
+fun add
+ (a: point, b: point) : point = 
+     let 
+          //access via pattern matching
+          val (x0,y0) = a
+          val (x1,y1) = b
+     in
+       (*
+        Sometimes you'll see an @ in front
+        of a tuple constructor, both
+        methods are essentially the same.
+        *)
+       @(x0+x1, y0+y1)
+     end 
+
+fun sub
+ (a: point, b: point) : point = 
+    //access via index
+    (a.0 - b.0, a.1 - b.1)
+
+implement main () = let
+     val a = (5, 2)
+     val b = (2, 1)
+     val sum = add(a, b)
+     val (dx,dy) = sub(a, b)
+     val () = println!
+              ("a+b=(", sum.0, ", ", sum.1, ")")
+     val () = println!
+              ("a-b=(", dx, ", ", dy, ")")
+   in end
+</div>
+</div>
+
+<div class="slide">
+<h2>Records</h2>
+<p>When you want more organization to your structures,
+you can use records to map labels to each field.</p>
+
+<div>
+typedef point = @{x=int,y=int}
+
+fun 
+  scale(a: point, s: int) : point = 
+   @{x= a.x*s, y=a.y*s}
+
+implement main () = let
+    val pt = scale(@{x=3, y=4}, 4)
+    val () = println!
+        ("(3,4) x 4 = (", pt.x, ",", pt.y, ")")
+  in end
+</div>
+</div>
+
+<div class="slide">
+<h2>Datatypes</h2>
+<p>Datatypes are similar to unions in C. They allow us
+to introduce some structure into our code that is far
+more expressive than structs and records.</p>
+
+<p>A datatype definition consists of a name for the type,
+followed by a list of constructors that may be used to construct
+that type. You can think of each constructor as defining a
+new state or instance in which a type may be.</p>
+
+<p>Most functions we write have the possibility for an error to occur.
+In an imperative language, we may return false, -1, or a NULL pointer upon
+error. In a strictly typed environment, we can leverage the type system
+to do the error reporting for us, as this example shows.</p>
+
+<p>Try entering different numbers into the runtime arguments for this
+example and see how the program behaves.</p>
+
+<h3>case</h3>
+<p>This is the first time we present the incredibly useful
+case construct. With case, we can do pattern matching on datatypes
+in order to "unrwrap" them, just as we did with Tuples and val statements.</p>
+
+<p>There are several options we can pass a case statement. Here, we added a +
+sign to case to tell the compiler to throw an error if we do not do exhaustive
+pattern matching on Option. This means that if there is a constructor that we
+do not provide a pattern for, our code will not pass typechecking. Without a +,
+only a warning will be given. To suppress this warning, you can put a - sign
+in front of the case, but do so with caution.</p>
+<div>
+datatype Option (a:t@ype) =
+ | Some (a) of (a)
+ | None (a)
+
+fun get_flag (s: string) : Option (int) = let
+      val n = int_of_string(s)
+    in 
+     if n > 5 then
+       None()
+     else
+       Some(n)
+    end
+
+implement main (argc, argv) =
+     if argc < 2 then
+        println! "Please give a number"
+     else let
+        val str = argv.[1]
+        val flg = get_flag(str)
+      in
+        case+ flg of
+         | None () =>
+                println! "Invalid option!"
+         | Some (n) =>
+                println! ("Running option ", n)
+      end
+</div>
+</div>
+
+<div class="slide">
+<h2>Recursive Datatypes</h2>
+<p>Datatypes can also be recursive. A good example
+of this is a
+<a href="http://en.wikipedia.org/wiki/Binary_search_tree"
+   target="_blank">binary search tree.</a></p>
+<h3>Exercise</h3>
+<p>Implement equal_values, which checks to see if two
+trees contain the same order of elements. Note, they could 
+have different structures, but still have the same elements.</p>
+<div>
+datatype Tree =
+  | Node of (int, Tree, Tree)
+  | Leaf of ()
+
+extern
+fun insert(t: Tree, i: int) : Tree
+
+extern
+fun equal_structure (a: Tree, b: Tree) : bool
+
+extern 
+fun equal_values (a: Tree, b: Tree) : bool
+
+implement
+equal_structure (a, b) =
+   case+ a of 
+   | Node (_, al, ar) =>
+     (case+ b of
+       | Node (_, bl, br) => let
+          val eqleft  = 
+              equal_structure(al, bl)
+          val eqright = 
+              equal_structure(ar, br)
+          in eqleft && eqright end
+       | Leaf () => false
+     )
+   | Leaf () =>
+     (case+ b of
+       | Node (_, _, _) => false
+       | Leaf () => true
+     )
 </div>
 </div>

@@ -13,7 +13,7 @@
       .btn#ats-action{"data-action"=>nil} Actions
       .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
         %span.caret
-      %ul.dropdown-menu
+      %ul.dropdown-menu#action-dropdown
         - actions.each do |action|
           %li
             %a.switch-state{"data-action"=>action}

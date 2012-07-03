@@ -23,6 +23,20 @@ setup = () ->
 
   editor = ats_ide("ats-ide")
 
+  ats_add_action(editor,"reset",
+    (ide)->
+      0
+  , (ide)->
+      0
+  , (ide)->
+      s = $(slide)
+      s.data("code", s.data("original"))
+      editor.code_mirror.setValue(s.data("code"))
+      editor.compile_flags = s.data("original_compile_flags")
+      editor.refresh()
+      save(slidenum)
+  )
+
   index = $("#index").hide()
 
   $("#toggle-index").bind "click", () ->
@@ -41,6 +55,7 @@ setup = () ->
       s.data("index",i)
       s.data("code",code.text().trim())
       s.data("original", code.text().trim())
+      s.data("original_compile_flags", code.data("compile_flags")||[])
       s.data("compile_flags", code.data("compile_flags")||[])
 
     content = $('<div class="content">')
@@ -76,7 +91,8 @@ show = (i) ->
   if slide != null
     oldslide = $(slide).hide()
     if !oldslide.hasClass("nocode")
-      save(oldslide.data("index")) || oldslide.data("code",editor.code_mirror.getValue())
+      save(oldslide.data("index")) ||
+      oldslide.data("code",editor.code_mirror.getValue())
 
   slidenum = i
   slide = slides[i]
@@ -89,9 +105,13 @@ show = (i) ->
     $("#ats-ide").show()
     $("#ats-console").empty()
     $("#content").attr("class","span6")
-    editor.code_mirror.setValue(load(i) || s.data("code"))
-    editor.compile_flags = s.data("compile_flags") || []
+    state = load(i) || s.data()
+
+    editor.code_mirror.setValue(state.code)
+    editor.compile_flags = state.compile_flags || []
+    editor.runtime_flags = state.runtime_flags || []
     editor.code_mirror.focus()
+    editor.refresh()
 
   url = location.href
   j = url.indexOf("#")
@@ -113,7 +133,11 @@ show_index = () ->
 save = (page) ->
   if !supports_html5_storage()
     return
-  localStorage["page"+page] = editor.code_mirror.getValue()
+  localStorage["data"+page] = JSON.stringify {
+      code: editor.code_mirror.getValue(),
+      compile_flags: editor.compile_flags,
+      runtime_flags: editor.runtime_flags
+  }
 
 savelast = () ->
   if !supports_html5_storage()
@@ -130,13 +154,11 @@ showlast = () ->
 load = (page) ->
   if !supports_html5_storage()
     return
-  return localStorage["page"+page]
+
+  if stored = localStorage["data"+page]
+    return JSON.parse(stored)
 
 reset = () ->
-  s = $(slide)
-  s.data("code",s.data("original"))
-  editor.setValue(s.data("code"))
-  save(slidenum)
 
 slidenumber_of_url = (url) ->
   i = url.indexOf("#")
@@ -165,6 +187,6 @@ page_up_down = (event) ->
 
 supports_html5_storage = () ->
 	try
-		return 'localStorage' in window && window['localStorage'] != null
+		return `'localStorage' in window && window['localStorage'] != null`
 	catch e
 		return false

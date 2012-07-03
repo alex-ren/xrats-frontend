@@ -74,6 +74,13 @@ save_handlers = {
     ide.arch = $('input:radio[name=arch]:checked').val()
 }
 
+update_handlers = {
+  compile: (ide) ->
+    $("##{ide.id} #compile-flags").val(ide.compile_flags.join(" "))
+  run: (ide) ->
+    $("##{ide.id} #runtime-flags").val(ide.runtime_flags.join(" "))
+}
+
 get_flags = (name) ->
   if flags = $("##{name}-flags").val()
     return flags.split(" ")
@@ -198,10 +205,20 @@ handle_file = (input,ide) ->
 # Populate the ats object with options given in the HTML
 # document.
 load_ide_options = (id) ->
-  ide = $("##{id} #ats-info").data()
-  ide.compile_flags = ide.compileFlags || []
-  ide.runtime_flags = ide.runtimeFlags || []
-  return ide
+  return $("##{id} #ats-info").data()
+
+bind_switch_state = (ide) ->
+  $("##{ide.id} .switch-state").bind "click", (event) ->
+    label = $(this).html()
+    action = $(this).attr("data-action")
+    old_action = $("#ats-action").data("action")
+    $("##{ide.id} #ats-action").html(label)
+    $("##{ide.id} #ats-action").data("action",action)
+    if save = save_handlers[old_action]
+      save(ide)
+    $("##{ide.id} #ctl-workspace").empty()
+    if init = setup_handlers[action]
+      init(ide)
 
 make_ats_ide = (id) ->
 
@@ -223,17 +240,7 @@ make_ats_ide = (id) ->
   $(ide.code_mirror.getScrollerElement()).height(500)
   ide.code_mirror.refresh()
 
-  $("##{id} .switch-state").bind "click", (event) ->
-    label = $(this).html()
-    action = $(this).attr("data-action")
-    old_action = $("#ats-action").data("action")
-    $("##{id} #ats-action").html(label)
-    $("##{id} #ats-action").data("action",action)
-    if save = save_handlers[old_action]
-      save(ide)
-    $("##{id} #ctl-workspace").empty()
-    if init = setup_handlers[action]
-      init(ide)
+  bind_switch_state(ide)
 
   $('#ats-action').bind "click", (event) ->
     action = $(this).data("action")
@@ -247,9 +254,26 @@ make_ats_ide = (id) ->
     ide.code_mirror.setValue(evnt.target.result)
 
   $('#attached_file').bind "change", (event) ->
-    handle_file(this,ide)
+    handle_file(this, ide)
+
+  ide.refresh = () ->
+    action = $("##{this.id} #ats-action").data("action")
+    if update = update_handlers[action]
+      update(this)
 
   return ide
 
 # Export the ability to create an ats editor window.
 window.ats_ide = make_ats_ide
+
+# Enable adding on to the editor's functionality
+window.ats_add_action = (ide, action, save, setup, dispatch) ->
+  dispatcher[action] = dispatch
+  setup_handlers[action] = setup
+  save_handlers[action] = save
+  link = $('<a class="switch-state">')
+  link.attr('data-action',action)
+  link.text(action[0].toUpperCase()+action.slice(1))
+  li = $("<li>").append(link)
+  $("##{ide.id} #action-dropdown").append(li)
+  bind_switch_state(ide)
