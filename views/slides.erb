@@ -8,10 +8,11 @@ doing so will inevitably make you a better programmer.</p>
 <p>This tutorial is meant as an informal guide to getting your feet wet with ATS
 without going to the trouble or entertainment of bootstrapping the compiler yourself.
 For a more complete reference, see Hongwei Xi's book,
-<a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">Introduction to Programming in ATS</a></p>
+<a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">
+Introduction to Programming in ATS</a></p>
 
-<p>For a more succinct reference, check out the <a href="http://en.wikipedia.org/wiki/ATS_(programming_language)" target="_blank">
-ATS Wikipedia Page</a>.</p>
+<p>For a more succinct reference, check out the <a href="http://en.wikipedia.org/wiki/ATS_(programming_language)" 
+target="_blank">ATS Wikipedia Page</a>.</p>
 
 <p>This guide starts off with an overview of functional programming in ATS, followed
 by a description of using dependent types with theorem proving, and finally an
@@ -563,18 +564,20 @@ example and see how the program behaves.</p>
 case construct. With case, we can do pattern matching on datatypes
 in order to "unrwrap" them, just as we did with Tuples and val statements.</p>
 
-<p>There are several options we can pass a case statement. Here, we added a +
-sign to case to tell the compiler to throw an error if we do not do exhaustive
-pattern matching on Option. This means that if there is a constructor that we
-do not provide a pattern for, our code will not pass typechecking. Without a +,
-only a warning will be given. To suppress this warning, you can put a - sign
-in front of the case, but do so with caution.</p>
-<div>
-datatype Option (a:t@ype) =
- | Some (a) of (a)
- | None (a)
+<p>There are several options we can pass a case statement. Here, we
+ added a + sign to case to tell the compiler to throw an error if 
+we do not do exhaustive pattern matching on Option. This means 
+that if there is a constructor that we do not provide a pattern 
+for, our code will not pass typechecking. Without a +, only a 
+warning will be given. To suppress this warning, you can put 
+a - sign in front of the case, but do so with caution.</p>
 
-fun get_flag (s: string) : Option (int) = let
+<div>
+datatype Option =
+ | Some of (int)
+ | None of ()
+
+fun get_flag (s: string) : Option = let
       val n = int_of_string(s)
     in 
      if n > 5 then
@@ -601,27 +604,64 @@ implement main (argc, argv) =
 
 <div class="slide">
 <h2>Recursive Datatypes</h2>
-<p>Datatypes can also be recursive. A good example
-of this is a
+<p>A recursive datatype is a type where one of its constructors
+contains another instance of the type. A singly linked list is one
+of the simplest such types.</p>
+
+<p>ATS has a couple of linked list types available in the prelude, but just for fun we'll redefine one of them here. Check out the
+<a href="http://xrats.illtyped.com/ats/ats028/prelude/SATS/list.sats" target="_blank">list.sats</a> file for a complete reference for
+the list interface.
+
+<h3>Exercise</h3>
+<p>Implement the map function, which applies a function to each
+element in a list, and creates a new list out of the results of the
+function.</p>
+
+<div>
+datatype List = 
+  | list_cons of (int, List)
+  | list_nil  of ()
+
+extern
+fun map (xs: List, f: int -&lt;fun&gt; int) : List
+
+fun print_list (xs: List) : void =
+    case+ xs of
+    | list_cons(x, list_nil() ) => print x
+    | list_cons(x,xs) =>> let
+         val () = print x
+         val () = print ", "
+       in print_list(xs) end
+    | list_nil () => ()
+
+
+
+
+</div>
+</div>
+
+<div class="slide">
+<h2>Binary Search Trees</h2>
+<p>Another good example of a recursive datatype is a
 <a href="http://en.wikipedia.org/wiki/Binary_search_tree"
    target="_blank">binary search tree.</a></p>
 <h3>Exercise</h3>
-<p>Implement equal_values, which checks to see if two
-trees contain the same order of elements. Note, they could 
-have different structures, but still have the same elements.</p>
+<p>Implement search, which searches for a number inside
+of a Binary Search Tree.</p>
 <div>
 datatype Tree =
   | Node of (int, Tree, Tree)
   | Leaf of ()
 
 extern
-fun insert(t: Tree, i: int) : Tree
+fun insert (t: Tree, i: int) : Tree
+
+extern
+fun search 
+    (haystack: Tree, needle :int) : bool
 
 extern
 fun equal_structure (a: Tree, b: Tree) : bool
-
-extern 
-fun equal_values (a: Tree, b: Tree) : bool
 
 implement
 equal_structure (a, b) =
@@ -642,6 +682,32 @@ equal_structure (a, b) =
        | Leaf () => true
      )
 
+implement
+insert (t, i) =
+  case+ t of =>
+  | Node (n, l, r) =>
+    if val < n then
+       Node(n, insert(l,val), r)
+    else
+       Node(n, l, insert(r, val))
+  | Leaf () => Node( val, Leaf(), Leaf())
+
 implement main () = ()
+</div>
+</div>
+
+<div class="slide">
+<h2>Polymorphism</h2>
+<p>In the last few examples, we defined several data types
+that only stored integers. At a high-level, the semantics behind
+these data structures are the same regardless their elements' types,
+so it is useful to use polymorphism to provide general support for
+all types.</p>
+
+<p>The zip function makes a list of tuples, each tuple containing
+elements of both lists occuring at the same position. If the lists
+have different length, the result will be the length of the shorter
+list.</p>
+<div>
 </div>
 </div>
