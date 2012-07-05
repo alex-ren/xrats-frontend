@@ -1,5 +1,8 @@
+$(document).ready () ->
+  bind_all_code()
+
 bind_all_code = () ->
-  domain = $("ats-ide").data("domain")
+  domain = $("#ats-info").data("domain")
   $(".patsyntax").each (i, el) ->
     button = $("<button>").text("Typecheck")
     button.attr("style","margin-top:-38px; float:right;")
@@ -18,5 +21,3 @@ bind_all_code = () ->
       form.append(code)
       form.submit()
 
-$(document).ready () ->
-  bind_all_code()
