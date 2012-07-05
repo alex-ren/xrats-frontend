@@ -11,13 +11,14 @@ bind_all_code = () ->
     cb.insertAfter(button)
     button.bind "click", () =>
       content = $(this).data("input")
-      form = $("<form target='_blank' method='post'>")
+      form = $("<form target='_blank' name='open-editor' method='post'>")
       form.attr "action",
         "http://#{domain}/code/patsopt"
-      method = $('<input type="hidden" name="_method" value="put">')
+      method = $('<input type="hidden" name="_method" value="put" />')
       form.append(method)
       code = $('<textarea name="input">')
       code.text(content)
       form.append(code)
+      $("body").append(form)
       form.submit()
 
