@@ -228,7 +228,7 @@ def download_project params
   
   if !(File.exists?(orig+"_dats.c") && Dir.exists?(lib)        \
        && $app_config[:allowed_archs].include?(params["arch"]) \
-       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/           \
+       && params["filename"] =~ /^[a-zA-Z0-9\-_]+$/            \
        && ( !Dir.exists?(dir) || base.contains?(dir) ))
     raise Sinatra::NotFound
   end
@@ -292,6 +292,10 @@ get '/editor.js' do
   coffee :editor
 end
 
+get '/external.js' do
+  coffee :external
+end
+
 get %r{^/(ats|repos)??/?$} do
   cache_control :public, max_age:"86400"
   haml :index
@@ -299,6 +303,12 @@ end
 
 get "/code/:compiler" do |compiler|
   hash = get_new_hashcode
+  redirect "/code/#{compiler}/#{hash}"
+end
+
+put "/code/:compiler" do |compiler|
+  hash = get_new_hashcode
+  save_session hash, params
   redirect "/code/#{compiler}/#{hash}"
 end
 
