@@ -796,11 +796,11 @@ datatype GenList =
 <h2>Generic Lists</h2>
 <p>Using templates we can define an interface to use lists.</p>
 
-<h2>Map</h2>
+<h3>Map</h3>
 <p>Earlier, you implemented the map function for lists of integers. In
 this example we use a higher level version that allows a user to 
 transform a list of some type to any other type they choose.</p>
-<h2>Zip</h2>
+<h3>Zip</h3>
 <p>The zip function makes a list of tuples, each tuple containing
 elements of both lists occuring at the same position. If the lists
 have different length, the result will be the length of the shorter
@@ -849,6 +849,11 @@ understand the semantics of what we're doing here in ATS.</p>
 
 <p>With this definition, we're able to refine our interfaces on lists.</p>
 
+<h3>Universal Quantifiers</h3>
+<p></p>
+
+<h3>Existential Quantifiers</h3>
+<p></p>
 <div>
 datatype list (a:t@ype, n:int) =
   | cons (a, n+1) of (a, list(a, n) )
@@ -879,4 +884,3 @@ fun {a:t@ype} zip {n,p:nat}
     (xs: list(a,n), ys: list(a,p)) : [m:nat] list(a, m)
 </div>
 </div>
-
