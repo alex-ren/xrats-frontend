@@ -1,7 +1,8 @@
 #!/bin/bash
 
-#Recompiles ATS and ATS
-
+# Recompiles ATS and ATS2
+# Should also package a tarball to package on the 
+# web.
 set -e
 
 cd /opt/ats028 && make

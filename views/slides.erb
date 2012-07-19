@@ -541,6 +541,45 @@ implement main () = let
 </div>
 
 <div class="slide">
+<h2>Variables and Assignment</h2>
+<p>Sometimes you need something more concrete than a value.
+Static and automatic variables can be set up in ATS and modified
+by reference. This contrasts with the functional pattern
+where all values are immutable.</p>
+
+<p>In this example, we create an integer and pass a reference to it 
+to our function, "init". At first, the interface for init looks confusing, but
+there's a great deal of information that describes the init's behavior.
+</p>
+
+<p>The following states that x is a reference to an uninitialized integer and that before
+this function returns, a value will be assigned to said integer.</p>
+
+<p>The &amp; tells ATS that x will be passed by reference via a pointer. 
+The question mark states that the variable x must be uninitialized; no value
+has been assigned to it. Automatic variables are stack allocated and consequently
+have undefined values by default. We use ">>" to specify a transition in the reference's
+state.</p>
+
+<p>We've told the type system that we're going to initialize x. If we forget, we won't be able to
+compile our code. Assignment is done differently than creating values. In contrast, the method 
+of assignment is itself a function that returns a void value. We use the ":=" infix operator for 
+assignment.</p>
+
+<div>
+implement main () = let
+  fun init (x: &int? >> int) : void = let
+      val () =  x := 5 //assign 5 to x
+    in end
+  //an automatic variable
+  var x : int
+  val () = init(x)
+  val () = println! ("x =", x)
+in end
+</div>
+</div>
+
+<div class="slide">
 <h2>Datatypes</h2>
 <p>Datatypes are similar to unions in C. They allow us
 to introduce some structure into our code that is far
@@ -633,10 +672,6 @@ fun print_list (xs: List) : void =
          val () = print ", "
        in print_list(xs) end
     | list_nil () => ()
-
-
-
-
 </div>
 </div>
 
@@ -648,6 +683,7 @@ fun print_list (xs: List) : void =
 <h3>Exercise</h3>
 <p>Implement search, which searches for a number inside
 of a Binary Search Tree.</p>
+
 <div>
 datatype Tree =
   | Node of (int, Tree, Tree)
@@ -662,6 +698,9 @@ fun search
 
 extern
 fun equal_structure (a: Tree, b: Tree) : bool
+
+extern
+fun contains (haystack: Tree, b: Tree) : bool
 
 implement
 equal_structure (a, b) =
@@ -684,13 +723,24 @@ equal_structure (a, b) =
 
 implement
 insert (t, i) =
-  case+ t of =>
+  case+ t of
   | Node (n, l, r) =>
-    if val < n then
-       Node(n, insert(l,val), r)
+    if i < n then
+       Node(n, insert(l,i), r)
     else
-       Node(n, l, insert(r, val))
-  | Leaf () => Node( val, Leaf(), Leaf())
+       Node(n, l, insert(r, i))
+  | Leaf () => Node( i, Leaf(), Leaf())
+
+implement 
+contains (hay,needle) = 
+  if equal_structure(hay, needle) then 
+     true
+  else
+   case+ hay of 
+   | Node(_, l, r) =>
+     equal_structure(l,needle) || 
+     equal_structure(r,needle)
+   | Leaf () => false
 
 implement main () = ()
 </div>
@@ -704,10 +754,129 @@ these data structures are the same regardless their elements' types,
 so it is useful to use polymorphism to provide general support for
 all types.</p>
 
+<p>In ATS, we use templates to define functions that can act on multiple
+types. Types come in a wide variety of classifications in ATS, but for now
+we'll just say lists contain some t@ype a.</p>
+
+<p>The name "a" isn't important here; it's simply a label we give to some
+type. In our new definition of List, we've stated that all Lists must
+be associated with some type a. Since all forms of List share this invariant,
+we must use "a" when we define its constructors. A constructor then takes the 
+following form.</p>
+
+<p> Elements in the constructor are accessible at runtime, and indeed we've 
+seen how we can retrieve them using pattern matching. Static quantifiers are
+used to supply constraints which the typechecker will enforce. In this example,
+we've specified that a single list may be composed of any type, but all elements
+in that list must be of the same type.</p>
+
+<p>In a lot of languages you can make lists composed of any type. We can
+do the same thing in ATS by tweaking our datatype definition. If every
+element of a list may have a differing type, then the list as a whole cannot
+have a single type associated with it. Instead, we introduce the type "a" in the
+gcons constructor, since here is the only place we need it. Inside the braces we 
+define "a", and then say each instance of gcons must contain "a" (in this case, any type), as well as a generic list to which are appending "a".</p>
+
+<p>The following is the form for a constructor</p>
+
+<pre><code>| {static definitions} name
+                     (static quantifiers) of ( constructor )</code></pre>
+<div>
+datatype List (a:t@ype) = 
+ | cons (a) of (a, List(a))
+ | nil (a) of ()
+
+datatype GenList = 
+ | {a:t@ype} gcons of (a, GenList)
+ | gnil of ()
+</div>
+</div>
+
+<div class="slide">
+<h2>Generic Lists</h2>
+<p>Using templates we can define an interface to use lists.</p>
+
+<h2>Map</h2>
+<p>Earlier, you implemented the map function for lists of integers. In
+this example we use a higher level version that allows a user to 
+transform a list of some type to any other type they choose.</p>
+<h2>Zip</h2>
 <p>The zip function makes a list of tuples, each tuple containing
 elements of both lists occuring at the same position. If the lists
 have different length, the result will be the length of the shorter
 list.</p>
 <div>
+datatype List (a:type) = 
+ | cons (a) of (a, List(a))
+ | nil (a) of ()
 </div>
 </div>
+
+<div class="slide nocode">
+<h2>Statics and Dynamics</h2>
+<p>In the last section we talked about adding constraints to datatypes and
+introduced some of the notation to do so. We also introduced the idea of "statics". The static portion of ATS provides the ability to reason about the dynamics. In other
+words, statics provide us a way of specifying and enforce invariant properties in
+our code.</p>
+
+<p>Up until this point, we've just talked about the dynamics in ATS. These
+consist of values and the expressions that make use of them. With just the dynamics,
+ATS appears similar to other functional programming languages like Haskell or ML.
+With statics, we can specify constraints and define relationships between values
+all without introducing run-time overhead.</p>
+
+<p>It can be pretty confusing to use statics to form dependent types for the first
+time since it's so different from most programming approaches. Statics are completely
+separate from dynamics, and you may not modify them directly except within proof
+functions, which we will discuss later.</p>
+
+<p>For now, just think of statics as contracts or assertions made on variables within
+your code. We'll go over some examples with linked lists first.</p>
+</div>
+
+<div class="slide">
+<h2>Considering Length with Lists</h2>
+
+<p>Earlier we added templates to our lists to make them more useful. Here we add another 
+invariant, length.</p>
+
+<p>Let's look at how we've changed the definition of a list. Here, a
+list only grows by adding items to it one at a time. This invariant is 
+captured by the new quantifier we've added to all lists, a natural number n. When we
+cons an item to a list of size n, we create a new list of size n+1. nil simply 
+provides an empty list with length 0. Such concepts are trivial, but it's important to
+understand the semantics of what we're doing here in ATS.</p>
+
+<p>With this definition, we're able to refine our interfaces on lists.</p>
+
+<div>
+datatype list (a:t@ype, n:int) =
+  | cons (a, n+1) of (a, list(a, n) )
+  | nil (a, 0) of ()
+
+(*
+  Given a list of length n, set x to be the first 
+  element in xs, and return the tail of length n-1
+*)
+extern
+fun {a:t@ype} uncons {n:pos}
+    (xs: list(a, n), x: &a? >> a) : list(a, n-1)
+
+extern
+fun {a:t@ype} append {n,p:nat}
+    (xs: list(a,n), ys: list(a,p)) : list(a, n+p)
+
+extern
+fun {a:t@ype} get {n:pos} {i:nat | i < n}
+    (xs: list(a,n), i: int i) : a
+
+extern
+fun {a:t@ype} set {n,i:nat | i < n}
+    (xs: list(a,n), i: int i, x: a) : list(a, n)
+
+extern
+fun {a:t@ype} zip {n,p:nat}
+    (xs: list(a,n), ys: list(a,p)) : [m:nat] list(a, m)
+</div>
+</div>
+

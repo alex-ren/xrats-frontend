@@ -2,9 +2,10 @@ $(document).ready () ->
   bind_all_code()
 
 bind_all_code = () ->
-  domain = $("#ats-info").data("domain")
+  domain = $("#ats-info").data("domain") # data-domain="xrats.com"
   $(".patsyntax").each (i, el) ->
-    button = $("<button>").text("Typecheck")
+    name = $(this).data("name")
+    button = $("<button>").text("Typecheck") <button>Try it Yourself</button>
     button.attr("style","margin-top:-38px; float:right;")
     cb = $('<div style="clear:both;">')
     button.insertAfter($(this))
@@ -13,7 +14,7 @@ bind_all_code = () ->
       content = $(this).data("input")
       form = $("<form target='_blank' name='open-editor' method='post'>")
       form.attr "action",
-        "http://#{domain}/code/patsopt"
+        "http://www.ats-lang.org/TRYIT/#{name}")
       method = $('<input type="hidden" name="_method" value="put" />')
       form.append(method)
       code = $('<textarea name="input">')
