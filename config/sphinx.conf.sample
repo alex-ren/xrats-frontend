@@ -11,7 +11,9 @@ index ats_0_2_7
         path = data/ats-0.2.7
         docinfo = extern
         mlock  = 0
-        morphology = none
+        morphology = stem_en
+        enable_star = 1
+        min_prefix_len = 3
         min_word_len = 1
         charset_type = utf-8
         html_strip = 0
