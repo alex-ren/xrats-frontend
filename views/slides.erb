@@ -842,21 +842,45 @@ invariant, length.</p>
 
 <p>Let's look at how we've changed the definition of a list. Here, a
 list only grows by adding items to it one at a time. This invariant is 
-captured by the new quantifier we've added to all lists, a natural number n. When we
-cons an item to a list of size n, we create a new list of size n+1. nil simply 
-provides an empty list with length 0. Such concepts are trivial, but it's important to
-understand the semantics of what we're doing here in ATS.</p>
+captured by the new integer quantifier we've added to all lists. When we
+cons an item to a list of size n, we create a new list of size n+1, where n is a
+natural number. nil simply  provides an empty list with length 0. Such concepts 
+are trivial, but it's important to understand the semantics of what we're doing 
+here in ATS.</p>
 
 <p>With this definition, we're able to refine our interfaces on lists.</p>
 
 <h3>Universal Quantifiers</h3>
-<p></p>
+<p>Take a look at the definition of uncons, and you'll see we introduced 
+a quantifier n with type pos. This is an example of a static definition, and
+in this case we are not creating it, but instead asserting that such a number exists
+whenever this function is used. The type "pos" is just short hand for an integer 
+that is greater than zero. When we defined cons, we did something similar by using 
+"nat" for a natural number.
+</p>
+
+<p>The important thing here is that we've related the positive number n
+to the list xs. Since n must be a positive number according to our specification,
+passing in a list of length zero will result in a type error, and your code will 
+not compile.</p>
+
+<p>A similar approach is in the get and set functions where we define an index
+as being strictly less than the length of the list, and then bind that static integer
+i, to the dynamic integer i. Now, if a programmer passes in a value for i that is
+greater than or equal to n, a type error will occur.</p>
 
 <h3>Existential Quantifiers</h3>
-<p></p>
+<p>Sometimes the results of a function cannot be simply expressed soley in terms
+of the universal quantifiers. Zip, for example, returns a list of length equal to 
+the shorter list of xs and ys. Using "[]" in the function specification, we introduce
+a new natural number m, and use the zipped static expression we defined to say
+it must be equal to the smaller of n and p. Thus, we are able to prove the zip
+invariant, at least with length. Using the "|" character we can add constraints to 
+quantifiers and seperate each constraint with a semi-colon.
+</p>
 <div>
-datatype list (a:t@ype, n:int) =
-  | cons (a, n+1) of (a, list(a, n) )
+datatype list (a:t@ype, int) =
+  | {n:nat} cons (a, n+1) of (a, list(a, n) )
   | nil (a, 0) of ()
 
 (*
@@ -879,8 +903,110 @@ extern
 fun {a:t@ype} set {n,i:nat | i < n}
     (xs: list(a,n), i: int i, x: a) : list(a, n)
 
+(*
+ stadef is handy for simplifying long 
+ expressions.
+*)
+//c is equal to the smaller of a and b.
+stadef zipped
+  (a: int, b:int, c:int) = 
+  	( ((a < b) && c == a)
+  	   || ((a >= b) && c == b) )
+
 extern
-fun {a:t@ype} zip {n,p:nat}
-    (xs: list(a,n), ys: list(a,p)) : [m:nat] list(a, m)
+fun {a,b:t@ype} zip {n,p:nat}
+    (xs: list(a, n), ys: list(b, p)) : 
+    	[m:nat | zipped(n,p,m)] list((a,b), m)
+
+implement {a,b} zip {n,p} (xs,ys) =
+    case+ xs of
+     | cons(x,xs') => //xs' has length n - 1
+       (
+        case+ ys of
+         | cons(y,ys') => 
+           //ys' has length p - 1
+           let 
+             //tail has length m - 1
+             val tail = zip(xs',ys'))
+           in
+              //result has length m - 1 + 1 = m
+              cons((x,y), tail)
+           end
+         //no element to bind x with, return nil
+         | nil () => nil ()
+       )
+    //no element to bind y with, return nil
+    | nil () => nil()
 </div>
+</div>
+
+<div class="slide">
+<h2>Functional Queues</h2>
+<p>A reasonably efficient queue can be implemented
+with two lists. Items are queued to the front of the 
+back list, and dequeued from the front list. In the 
+event that the front list is empty, the back list is 
+reversed and replaces the front list. On average,
+dequeue will be constant time, except the call
+that requires the whole back list to be reversed.
+</p>
+
+<p>To record the size of the queue, we use the sum
+of the two lists' length and make it a static quantifier.
+With this approach, it's impossible to dequeue an empty queue,
+because such a call will be caught by the type checker.</p>
+
+<h3>Exercise</h3>
+<p>Implement the peek function, which sets
+x to be the item at the front of the queue, but
+does not remove it from the queue.</p>
+<div>
+datatype list (a:t@ype, int) =
+  | {n:nat} cons (a, n+1) of (a, list(a, n) )
+  | nil (a, 0) of ()
+
+datatype queue (a:t@ype, int) =
+  | {n,p: nat} queue (a,n+p) of (list(a,n), list(a,p))
+
+extern
+fun {a:t@ype} reverse {n:nat}
+    (xs: list(a,n)) : list(a,n)
+
+extern
+fun {a:t@ype} enqueue {n:nat}
+    (q: queue(a,n), x: a ) : queue(a,n+1)
+
+extern
+fun {a:t@ype} dequeue {n:pos}
+    (q: queue(a,n), x : &a? >> a) : queue(a,n-1)
+
+extern
+fun {a:t@ype} peek {n:pos}
+    (q: queue(a,n), x : &a? >> a) : queue(a,n)
+
+implement {a}
+reverse {n} (xs) = let
+  fun loop {m,o:nat}
+    (xs:list(a,m),rs: list(a,o)) : list(a, m+o) = 
+      case+ xs of
+        | cons(x,xs) => loop(xs,cons(x,rs))
+        | nil() => rs
+  in loop(xs, nil()) end
+
+implement {a}
+enqueue {n} (q,x) = let
+  val+ queue(fr,bk) = q
+  in queue(fr,cons(x,bk)) end
+
+implement {a}
+dequeue {n} (q, x) = let
+  val queue(fr,bk) = q
+ in case+ fr of
+    | cons(f,fr) => let
+      val () = x := f
+    in queue (fr, bk) end
+    | nil () => let
+      val cons(b,rbk) = reverse(bk)
+      val () = x := b
+     in queue(rbk,nil()) end
 </div>
