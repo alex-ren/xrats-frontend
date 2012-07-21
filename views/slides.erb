@@ -1084,7 +1084,7 @@ datatype tree (a:t@ype) =
 
 extern
 fun {a:t@ype} levelorder_traverse
-    (t: tree(a), visit: tree(a) -&lt;fun&gt; void ) : void
+    (t: tree(a), visit: tree(a) -<fun> void ) : void
 
 implement {a}
 levelorder_traverse (t, visit) =
@@ -1092,18 +1092,33 @@ levelorder_traverse (t, visit) =
   | leaf () => ()
   | _ =>> let
     var q : QUEUE0 (tree(a))
-    val () = queue_initialize<tree(a)>(q)
+    val () = queue_initialize{tree(a)}(q)
     val () = queue_insert<tree(a)>(q,t)
-    fun loop {q:nat} {t:nat}
-      (q: &QUEUE(a,q)) : void =
+    fun loop {q:nat}
+      (q: &QUEUE(tree(a),q) >> QUEUE(tree(a),0)) : void =
       if queue_isnot_empty(q) then let
-         val node = queue_remove<tree(a)>(q)
-         val () = visit(node)
-       in end
-         
-    val xs = queue_uninitialize<tree(a)>(q)
+         val n = queue_remove<tree(a)>(q)
+         val () = visit(n)
+	  in case+ n of
+           | node(_,l,r) => let
+              val () = queue_insert<tree(a)>(q,l)
+              val () = queue_insert<tree(a)>(q,r)
+             in loop(q) end
+           | leaf () => loop(q)
+       end
+    val xs = queue_uninitialize(q)
     val () = list_vt_free(xs)
   in end
+  
+implement 
+main () = let
+ val t = node(10,node(4,node(3,leaf(),node(2,leaf(),leaf())),node(1,leaf(),leaf())),node(1,leaf(),leaf()))
+ fun visit(t:tree(int)) : void =
+ 	case+ t of
+    | node(x,_,_) => println! x
+    | leaf () => (*none*)
+ levelorder_traverse<int>(t,visit)
+in end
 </div>
 </div>
 
