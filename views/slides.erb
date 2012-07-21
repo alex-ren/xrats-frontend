@@ -11,7 +11,7 @@ For a more complete reference, see Hongwei Xi's book,
 <a href="http://www.ats-lang.org/DOCUMENT/INTPROGINATS/HTML/book1.html" target="blank">
 Introduction to Programming in ATS</a></p>
 
-<p>For a more succinct reference, check out the <a href="http://en.wikipedia.org/wiki/ATS_(programming_language)" 
+<p>For a more succinct reference, check out the <a href="http://en.wikipedia.org/wiki/ATS_(programming_language)"
 target="_blank">ATS Wikipedia Page</a>.</p>
 
 <p>This guide starts off with an overview of functional programming in ATS, followed
@@ -41,7 +41,7 @@ bugs in gdb.</p>
 
 <p>With hello world, there isn't much to check so we can
 quickly compile and run our code. The compile option tells ATS to compile your code
-down to C and then use gcc to produce an executable.</p>
+down to C and then it uses gcc to produce an executable.</p>
 
 <p>If you really get lost in the weeds, just choose the reset option and
 you can start over.</p>
@@ -770,12 +770,13 @@ used to supply constraints which the typechecker will enforce. In this example,
 we've specified that a single list may be composed of any type, but all elements
 in that list must be of the same type.</p>
 
-<p>In a lot of languages you can make lists composed of any type. We can
+<p>In a lot of languages you can make lists composed of many types. We can
 do the same thing in ATS by tweaking our datatype definition. If every
 element of a list may have a differing type, then the list as a whole cannot
 have a single type associated with it. Instead, we introduce the type "a" in the
 gcons constructor, since here is the only place we need it. Inside the braces we 
-define "a", and then say each instance of gcons must contain "a" (in this case, any type), as well as a generic list to which are appending "a".</p>
+define "a", and then say each instance of gcons must contain "a" (in this case, 
+any type), as well as a generic list to which are appending "a".</p>
 
 <p>The following is the form for a constructor</p>
 
@@ -835,7 +836,7 @@ your code. We'll go over some examples with linked lists first.</p>
 </div>
 
 <div class="slide">
-<h2>Considering Length with Lists</h2>
+<h2>Adding Length to Lists</h2>
 
 <p>Earlier we added templates to our lists to make them more useful. Here we add another 
 invariant, length.</p>
@@ -878,6 +879,9 @@ it must be equal to the smaller of n and p. Thus, we are able to prove the zip
 invariant, at least with length. Using the "|" character we can add constraints to 
 quantifiers and seperate each constraint with a semi-colon.
 </p>
+
+<p>In this code we've put comments to help you understand the steps
+the typechecker will go through in resolving your proofs.</p>
 <div>
 datatype list (a:t@ype, int) =
   | {n:nat} cons (a, n+1) of (a, list(a, n) )
@@ -920,7 +924,8 @@ fun {a,b:t@ype} zip {n,p:nat}
 
 implement {a,b} zip {n,p} (xs,ys) =
     case+ xs of
-     | cons(x,xs') => //xs' has length n - 1
+     //xs' has length n - 1
+     | cons(x,xs') => 
        (
         case+ ys of
          | cons(y,ys') => 
@@ -957,20 +962,26 @@ With this approach, it's impossible to dequeue an empty queue,
 because such a call will be caught by the type checker.</p>
 
 <h3>Exercise</h3>
-<p>Implement the peek function, which sets
+<p>Implement peek, which sets
 x to be the item at the front of the queue, but
 does not remove it from the queue.</p>
+
 <div>
 datatype list (a:t@ype, int) =
   | {n:nat} cons (a, n+1) of (a, list(a, n) )
   | nil (a, 0) of ()
 
 datatype queue (a:t@ype, int) =
-  | {n,p: nat} queue (a,n+p) of (list(a,n), list(a,p))
+  | {n,p:nat} queue (a,n+p) of 
+  	(list(a,n), list(a,p))
 
 extern
 fun {a:t@ype} reverse {n:nat}
     (xs: list(a,n)) : list(a,n)
+
+extern
+fun {a:t@ype} queue_make
+    () : queue(a, 0)
 
 extern
 fun {a:t@ype} enqueue {n:nat}
@@ -989,24 +1000,142 @@ reverse {n} (xs) = let
   fun loop {m,o:nat}
     (xs:list(a,m),rs: list(a,o)) : list(a, m+o) = 
       case+ xs of
-        | cons(x,xs) => loop(xs,cons(x,rs))
+        | cons(x,xs) => let
+          //xs has length m - 1
+          //rs' has length o + 1
+          val rs' = cons(x,rs)
+          // m -1 + o + 1 = m + o
+          in loop(xs,rs') end
+        // 0 + o = o 
         | nil() => rs
+  // m + 0 = m
   in loop(xs, nil()) end
 
 implement {a}
+queue_make () = queue(nil(),nil())
+
+implement {a}
 enqueue {n} (q,x) = let
-  val+ queue(fr,bk) = q
+  val queue(fr,bk) = q
+  //queue has n+1 elemnts
   in queue(fr,cons(x,bk)) end
 
 implement {a}
 dequeue {n} (q, x) = let
+  // length(fr) + length(bk) = n
   val queue(fr,bk) = q
  in case+ fr of
     | cons(f,fr) => let
       val () = x := f
-    in queue (fr, bk) end
+      // length(fr) - 1 + length(bk) = n - 1
+    in queue(fr, bk) end
     | nil () => let
+      // 0 + length(bk) = n
+      // length(rbk) = bk - 1
       val cons(b,rbk) = reverse(bk)
       val () = x := b
+      //queue has n - 1 elements
      in queue(rbk,nil()) end
+ end 
+
+implement
+main () = let
+ fun empty {n:pos}
+     (q: queue(int,n), i: int n) : queue(int,0) = 
+         let
+           var tmp : int
+           val q = dequeue(q,tmp)
+           val () = println! tmp
+         in 
+          if i - 1 > 0 then 
+             empty(q, i-1)
+          else
+          	 q
+         end
+ val q = queue_make()
+ val q = enqueue(q,4)
+ val q = enqueue(q,3)
+ val q = enqueue(q,2)
+ val q = enqueue(q,1)
+ val q = empty(q,4)
+ //Try this out and watch the compiler complain
+ //var tmp : int
+ //val q = dequeue(q,tmp)
+in () end
+</div>
+</div>
+<div class="slide">
+<h2>Traversing Binary Trees</h2>
+<p>The ATS library implements a wide range of 
+data structures. Using a queue, we can do a level
+order traversal of a binary tree. In contrast
+to our functional queue, this one is a linear type
+which means it is mutable and we are responsible for
+the resource. We'll go over linear types in ATS later 
+on.</p>
+
+<div>
+staload "libats/SATS/linqueue_lst.sats"
+
+datatype tree (a:t@ype) =
+  | node (a) of
+       (a, tree(a), tree(a))
+  | leaf (a) of ()
+
+extern
+fun {a:t@ype} levelorder_traverse
+    (t: tree(a), visit: tree(a) -&lt;fun&gt; void ) : void
+
+implement {a}
+levelorder_traverse (t, visit) =
+  case+ t of 
+  | leaf () => ()
+  | _ =>> let
+    var q : QUEUE0 (tree(a))
+    val () = queue_initialize<tree(a)>(q)
+    val () = queue_insert<tree(a)>(q,t)
+    fun loop {q:nat} {t:nat}
+      (q: &QUEUE(a,q)) : void =
+      if queue_isnot_empty(q) then let
+         val node = queue_remove<tree(a)>(q)
+         val () = visit(node)
+       in end
+         
+    val xs = queue_uninitialize<tree(a)>(q)
+    val () = list_vt_free(xs)
+  in end
+</div>
+</div>
+
+<div class="slide">
+<h2>Encoding Binary Trees</h2>
+<p></p>
+<div>
+</div>
+</div>
+
+<div class="slide">
+<h2>Pattern Matching Binary Trees</h2>
+<div>
+</div>
+</div>
+
+<div class="slide">
+<h2>Sorting a K-Sorted List</h2>
+<p></p>
+<div>
+</div>
+</div>
+
+<div class="slide nocode">
+<h2>Programming with Theorem Proving</h2>
+<p></p>
+<div>
+</div>
+</div>
+
+<div class="slide">
+<h2>Proving Fibonacci</h2>
+<div>
+</div>
 </div>
