@@ -97,7 +97,14 @@ def listing_of_directory directory
   raise Sinatra::NotFound if not File.directory?(directory)
   @directory = Dir.new(directory)
   @entries = @directory.entries
-  @entries.sort!
+  @entries.select! do |f|
+    not [".","..",".git",".svn"].include? f
+  end
+  @entries.sort! do |a,b|
+    adir = File.directory? @directory.to_path+"/"+a
+    bdir = File.directory? @directory.to_path+"/"+b
+    (adir == bdir) ? (a.casecmp(b)) : (adir && !bdir) ? -1 : 1
+  end
   haml :directory_listing, locals:{title:"ATS LXR - "+@directory.to_path}
 end
 

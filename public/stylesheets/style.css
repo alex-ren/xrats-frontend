@@ -107,6 +107,10 @@ body {
     font-size: 16px;
 }
 
+.directory-listing ul {
+    list-style-type: none;
+}
+
 .cl {
     clear:both;
 }

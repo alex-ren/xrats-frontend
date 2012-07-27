@@ -1,10 +1,13 @@
 - @title = title
 - @header = haml :xref_header
 .directory-listing
-  %ul
+  %ul.nav.nav-pills.nav-stacked
     - @entries.each do |filename|
       %li
+        - icn = "file"
         - if File.directory? "#{@directory.to_path}/#{filename}"
           - filename += "/"
+          - icn = "folder-open"
         %a{:href=>filename}
+          %i{:class=>"icon-#{icn}"}
           = filename
