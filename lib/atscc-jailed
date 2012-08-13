@@ -144,83 +144,6 @@ sub compile {
 	return $success, @files;
 }
 
-sub compile_ats {
-    local($options, $args) = ($_[0], $_[1]);
-    $filename = random_string();
-    file_of_string($filename.".dats", $args->{"input"});
-    @files = ("$filename.dats", $filename."_dats.c", $filename);
-    $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
-    $ENV{'ATSHOMERELOC'} = "ATS-0.2.8";
-    chdir("/tmp"); #ATS needs to generate code in the pwd.
-    @compile_cmd = ($options->{"path"});
-    push @compile_cmd,  split(" ","-o /tmp/$filename /tmp/$filename.dats");
-    push @compile_cmd,  @{$options->{"compile_flags"}};
-    $success = fork_exec_err(@compile_cmd);
-  
-    if($success) {
-        if($options->{"typecheck"}) {
-            print "Your code has been successfully typechecked!\n";
-        } elsif ($options->{"run"}) {
-            #Make sure we can't write to these files.
-            chmod 0555, @files;
-	    alarm 2;
-            setrlimit(RLIMIT_STACK,8048576,8048576);
-            setrlimit(RLIMIT_VMEM,16048576,16048576);
-            @run_cmd = ("/opt/safe-exec");
-            push @run_cmd , "/tmp/$filename";
-            push @run_cmd, @{$options->{"runtime_flags"}};
-            system @run_cmd;
-            chdir("/tmp");
-            chmod 0755, @files;
-       } elsif ($options->{"save"}) {
-            #Let the caller know what files to collect
-	    print $filename;
-	} else {
-            print "Your code has been successfully compiled!\n";
-        }
-    }
-    return $success, @files;
-}
-
-
-sub compile_avr_ats {
-    local($options, $args) = ($_[0], $_[1]);
-    $filename = random_string();
-    file_of_string($filename.".dats", $args->{"input"});
-    $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
-    $ENV{'ATSHOMERELOC'} = "ATS-0.2.8";
-    chdir("/tmp"); #ATS needs to generate code in the pwd.
-    @compile_cmd = ($options->{"path"});
-    push @compile_cmd,  split(" ","-o /tmp/$filename.out /tmp/$filename.dats");
-    push @compile_cmd,  @{$options->{"compile_flags"}};
-    $success = fork_exec_err(@compile_cmd);
-
-    if($success) {
-        if($options->{"typecheck"}) {
-	  print "Your code has been successfully typechecked!\n";
-        } elsif ($options->{"save"}) {
-	  print $filename;
-        } else {
-	  print "Your code has been successfully compiled!\n";
-        }
-    }
-   return $success;
-}
-
-sub compile_patsopt {
-    local($options, $args) = ($_[0], $_[1]);
-    $filename = random_string();
-    file_of_string($filename.".dats", $args->{"input"});
-    $ENV{'PATSHOME'} = "/opt/postiats";
-    @compile_cmd = ($options->{"path"});
-    push @compile_cmd, split(" ","--dynamic /tmp/$filename.dats");
-    push @compile_cmd, @{ $options->{"compile_flags"} };
-    if( $success = fork_exec_err(@compile_cmd) ) {
-	print "Your code has been successfully typechecked!";
-    }
-    return $success, $filename;
-}
-
 %compilers = ("ats"=>
               {"options"=>
                {"path"=>"/opt/ats-0.2.7/bin/atscc","compile_flags"=>[],"runtime_flags"=>[],
@@ -234,7 +157,7 @@ sub compile_patsopt {
 	      "avrats"=> {
 		"options"=> {
 				"path"=> "/opt/ats-0.2.7/bin/avr-atscc", 
-				"compile_flags"=> ["-mmcu=atmega328p","-DF_CPU=16000000UL"],
+				"compile_flags"=> ["-h","-mmcu=atmega328p","-DF_CPU=16000000UL"],
 				"runtime_flags"=> [],
 				"env" => {
 					"ATSHOME"=>"/opt/ats-0.2.7",
