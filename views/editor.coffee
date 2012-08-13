@@ -16,6 +16,8 @@ dispatcher = {
     $('#attached_file').click()
   download: (ide) ->
     download_code(ide)
+  download_binary: (ide) ->
+    download_binary(ide)
 }
 
 setup_handlers = {

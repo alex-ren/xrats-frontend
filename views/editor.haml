@@ -26,6 +26,10 @@
           %li
             %a.switch-state{"data-action"=>"download"}
               Download C
+        - if download_binary
+          %li
+            %a.switch-state{"data-action"=>"download_binary"}
+              = download_binary_label
   #ctl-workspace.pull-right
   - if title
     %h3#console-title.pull-left

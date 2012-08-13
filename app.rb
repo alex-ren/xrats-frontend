@@ -217,7 +217,7 @@ def download_project params
   
   basepath = $app_config[:chroot_path]+"/tmp/downloads"
   base = nil
-
+  
   while true do 
     begin
       base = Dir.new basepath
@@ -245,17 +245,19 @@ def download_project params
   
   FileUtils.mkdir_p(dir)
   FileUtils.cp(orig+"_dats.c", src)
-  FileUtils.cp_r(lib, liba)
+  FileUtils.cp_r(lib+"/ats", liba)
   
+  #Process a Makefile Template
+
   tar = "#{dir}/#{params["filename"]}.tar.gz"
   
-  files = [tar,src,liba].map do |f|
+  files = [tar, src, liba].map do |f|
     File.basename(f)
   end
   
   `tar -czf #{tar} --directory=#{dir} #{files.slice(1..2).join(" ")}`
   
-  #nginx needs a path relative to tmp
+  #nginx needs a path relative to tmp/downloads
   tar.gsub! /^#{$app_config[:chroot_path]}\/tmp\/downloads\//, ""
   
   response.headers['Content-Type'] = "application/x-gzip"
@@ -264,13 +266,21 @@ def download_project params
 end
 
 def download_exe params
+  tmp = "#{$app_config[:chroot_path]}/tmp/"
+  orig = "#{tmp}/#{params["original_file"]}.hex"
+  src = "#{tmp}/downloads/#{params["filename"]}.hex"
+  
+  FileUtils.cp_r(orig, src)
+  
+  src.gsub! /^#{tmp}\/downloads\//, ""
+  
   response.headers['Content-Type'] = "application/x-gzip"
-  response.headers['Content-Disposition'] = "attachment; filename=#{}"
-  response.headers['X-Accel-Redirect'] = "/export/#{}"
+  response.headers['Content-Disposition'] = "attachment; filename=#{params["filename"]}.hex"
+  response.headers['X-Accel-Redirect'] = "/export/#{src}"
 end
 
 post '/:compiler/:action' do |compiler,action|
-
+  
   save_session(params[:hashcode], params) if params[:hashcode]
   
   case action
@@ -331,20 +341,25 @@ get "/code/:compiler/:hash" do |compiler,hash|
   actions = []
   canned = ""
   title = ""
+  download_binary = false
+  download_binary_label = ""
+
   case compiler
   when "ats"
     title = "ATS"
     canned = @session["input"] ||  open("config/helloworld.dats").read()
     actions = ["typecheck","compile","run","save"]
-  when "avr_ats"
+  when "avrats"
     title = "AVR ATS"
     canned = @session["input"] || open("config/blinkey.dats").read()
     actions = ["typecheck", "compile", "save"]
     @session["arch"] = "avr"
+    download_binary = true
+    download_binary_label = "Download Hex"
   when "patsopt"
     title = "ATS2"
     canned = @session["input"] || open("config/fibonacci.dats").read()
-    actions = ["typecheck","save"]
+    actions = ["typecheck", "save"]
   else 
     raise Sinatra::NotFound
   end
@@ -358,6 +373,8 @@ get "/code/:compiler/:hash" do |compiler,hash|
     canned: canned,
     title: title,
     download: download,
+    download_binary: download_binary,
+    download_binary_label: download_binary_label,
     arch: @session["arch"] || "x86_64",
     runtime_flags: @session["runtime_flags"] || [],
     compile_flags: @session["compile_flags"] || [],

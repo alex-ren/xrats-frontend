@@ -231,7 +231,7 @@ sub compile_patsopt {
 		"compiler_fmt" => " -o __filename__ __filename__.dats"
 		}
               },
-	      "avr_ats"=> {
+	      "avrats"=> {
 		"options"=> {
 				"path"=> "/opt/ats-0.2.7/bin/avr-atscc", 
 				"compile_flags"=> ["-mmcu=atmega328p","-DF_CPU=16000000UL"],
