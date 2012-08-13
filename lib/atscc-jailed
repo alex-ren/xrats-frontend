@@ -17,6 +17,8 @@
 # cp -r /opt/ats-0.2.7 /opt/atscc-jail/opt/ats-0.2.7
 # cp -r /opt/postiats /opt/atscc-jail/opt/postiats
 # cp lib/safe-exec /opt/atscc-jail/opt/
+#
+# Install gcc and binutils for avr and set /usr/local/lib in /etc/ld.so.conf, then run ldconfig
 
 use POSIX;
 use BSD::Resource;
@@ -93,6 +95,55 @@ sub fork_exec_err {
     return $success;
 }
 
+sub compile {
+	local($options, $args) = ($_[0], $_[1]);
+	$filename = random_string();
+
+	file_of_string($filename.".dats", $args->{"input"});
+
+	#All the files we'll work with (mostly)
+        @files = ("$filename.dats", $filename."_dats.c", $filename);
+
+	while ( ($key, $value) = each( %{ $options->{"env"} } ) ) {
+		$ENV{$key} = $value;
+	}
+
+	$fmt = $options->{"compiler_fmt"};
+	$fmt =~ s/__filename__/$filename/g;
+	
+	chdir("/tmp");
+	
+	@compile_cmd = ($options->{"path"});
+	push @compile_cmd, split(" ", $fmt);
+	push @compile_cmd, @{$options->{"compile_flags"}};
+
+	#fork and exec
+	$success = fork_exec_err(@compile_cmd);
+		
+	if($success) {
+		if($options->{"typecheck"}) {
+			print "Your code has been successfully typechecked!"; 
+		} elsif ($options->{"run"}) {
+			#Make sure we can't write to these files.
+            		chmod 0555, @files;
+	    		alarm 2;
+            		setrlimit(RLIMIT_STACK,8048576,8048576);
+            		setrlimit(RLIMIT_VMEM,16048576,16048576);
+            		@run_cmd = ("/opt/safe-exec");
+            		push @run_cmd , "/tmp/$filename";
+            		push @run_cmd, @{$options->{"runtime_flags"}};
+            		system @run_cmd;
+            		chdir("/tmp");
+            		chmod 0755, @files; 
+		} elsif ($options->{"save"} ) {
+			print $filename;
+		} else {
+			print "Your code has been successfully compiled!\n";
+		}
+	}
+	return $success, @files;
+}
+
 sub compile_ats {
     local($options, $args) = ($_[0], $_[1]);
     $filename = random_string();
@@ -105,7 +156,7 @@ sub compile_ats {
     push @compile_cmd,  split(" ","-o /tmp/$filename /tmp/$filename.dats");
     push @compile_cmd,  @{$options->{"compile_flags"}};
     $success = fork_exec_err(@compile_cmd);
-   
+  
     if($success) {
         if($options->{"typecheck"}) {
             print "Your code has been successfully typechecked!\n";
@@ -121,7 +172,7 @@ sub compile_ats {
             system @run_cmd;
             chdir("/tmp");
             chmod 0755, @files;
-        } elsif ($options->{"save"}) {
+       } elsif ($options->{"save"}) {
             #Let the caller know what files to collect
 	    print $filename;
 	} else {
@@ -129,6 +180,31 @@ sub compile_ats {
         }
     }
     return $success, @files;
+}
+
+
+sub compile_avr_ats {
+    local($options, $args) = ($_[0], $_[1]);
+    $filename = random_string();
+    file_of_string($filename.".dats", $args->{"input"});
+    $ENV{'ATSHOME'} = "/opt/ats-0.2.7";
+    $ENV{'ATSHOMERELOC'} = "ATS-0.2.8";
+    chdir("/tmp"); #ATS needs to generate code in the pwd.
+    @compile_cmd = ($options->{"path"});
+    push @compile_cmd,  split(" ","-o /tmp/$filename.out /tmp/$filename.dats");
+    push @compile_cmd,  @{$options->{"compile_flags"}};
+    $success = fork_exec_err(@compile_cmd);
+
+    if($success) {
+        if($options->{"typecheck"}) {
+	  print "Your code has been successfully typechecked!\n";
+        } elsif ($options->{"save"}) {
+	  print $filename;
+        } else {
+	  print "Your code has been successfully compiled!\n";
+        }
+    }
+   return $success;
 }
 
 sub compile_patsopt {
@@ -147,13 +223,34 @@ sub compile_patsopt {
 
 %compilers = ("ats"=>
               {"options"=>
-               {"path"=>"/opt/ats-0.2.7/bin/atscc","compile_flags"=>[],"runtime_flags"=>[]}
-               ,"compile"=>\&compile_ats
+               {"path"=>"/opt/ats-0.2.7/bin/atscc","compile_flags"=>[],"runtime_flags"=>[],
+		"env" => {
+			"ATSHOME"=>"/opt/ats-0.2.7",
+			"ATSHOMERELOC"=>"ATS-0.2.8"
+		},
+		"compiler_fmt" => " -o __filename__ __filename__.dats"
+		}
               },
+	      "avr_ats"=> {
+		"options"=> {
+				"path"=> "/opt/ats-0.2.7/bin/avr-atscc", 
+				"compile_flags"=> ["-mmcu=atmega328p","-DF_CPU=16000000UL"],
+				"runtime_flags"=> [],
+				"env" => {
+					"ATSHOME"=>"/opt/ats-0.2.7",
+					"ATSHOMERELOC"=>"ATS-0.2.8"
+				},
+				"compiler_fmt" => " -o __filename__ __filename__.dats"
+			}
+		},
               "patsopt"=>
               {"options"=>
-              {"path"=>"/opt/postiats/bin/patsopt","compile_flags"=>[],"runtime_flags"=>[]}
-              ,"compile"=>\&compile_patsopt
+              {"path"=>"/opt/postiats/bin/patsopt","compile_flags"=>[],"runtime_flags"=>[],
+	       "env" => {
+			"PATSHOME"=>"/opt/postiats"
+		},
+		"compiler_fmt" => "--dynamic __filename__"
+	      	}
               });
 
 #Collect the serialized input.
@@ -168,7 +265,7 @@ die "Invalid compiler given" unless $compiler = $compilers{ $args->{"compiler"} 
 
 $options = $compiler->{"options"};
 
-$ENV{'PATH'} = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
+$ENV{'PATH'} = "/usr/local/avr/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin";
 
 $action = $args->{"action"};
 
@@ -198,7 +295,7 @@ if( $action eq "typecheck" ) {
     $options->{"save"} = ($args->{"save"}) ? 1 : 0;
 }
 
-($success, @files) = $compiler->{"compile"}->($options, $args);
+($success, @files) = compile($options, $args);
 
 chdir("/tmp");
 

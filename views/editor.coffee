@@ -1,3 +1,8 @@
+archs = {
+  ats: [{id: "i386",  name: "32bit Linux"},
+        {id: "x86_64",name: "64bit Linux"}]
+}
+
 dispatcher = {
   typecheck: (ide) ->
     compile_code(ide,"typecheck")
@@ -42,26 +47,21 @@ setup_handlers = {
     span.html("Filename: ")
     $("#ctl-workspace").append(span)
     $("#ctl-workspace").append(i)
-    span = $("<span>")
-    span.attr("class","form-label")
-    span.html("OS: ")
-    $("#ctl-workspace").append(span)
-    i = $("<input>")
-    i.attr("type","radio")
-    i.attr("name","arch")
-    i.attr("value","x86_64")
-    if ide.arch == "x86_64"
-      i.attr("checked","true")
-    $("#ctl-workspace").append(i)
-    $("#ctl-workspace").append("64bit Linux")
-    i = $("<input>")
-    i.attr("type","radio")
-    i.attr("name","arch")
-    i.attr("value","i386")
-    if ide.arch == "i386"
-      i.attr("checked","true")
-    $("#ctl-workspace").append(i)
-    $("#ctl-workspace").append("32bit Linux")
+    #Display options
+    if archs[ide.compiler]
+      span = $("<span>")
+      span.attr("class", "form-label")
+      span.html("OS: ")
+      $("#ctl-workspace").append(span)
+      for ar in archs[ide.compiler]
+        i = $("<input>")
+        i.attr("type","radio")
+        i.attr("name","arch")
+        i.attr("value",ar.id)
+        if ide.arch == ar.id
+          i.attr("checked","true")
+        $("#ctl-workspace").append(i)
+        $("#ctl-workspace").append(ar.name)
 }
 
 save_handlers = {
@@ -71,7 +71,8 @@ save_handlers = {
     ide.runtime_flags = get_flags("runtime")
   download: (ide) ->
     ide.filename = $("#download-filename").val()
-    ide.arch = $('input:radio[name=arch]:checked').val()
+    if archs[ide.compiler]
+      ide.arch = $('input:radio[name=arch]:checked').val()
 }
 
 update_handlers = {
@@ -173,28 +174,39 @@ input_of_value = (item,value) ->
   i.attr("value",value)
   return i
 
-# First, compile the current code to see if it
-# works alright. Then, construct a form and
-# submit it to prompt the download.
+# Package the ide into a form and send it to
+# one of the compiler's endpoints for processing.
+post_ide = (ide, action, p) ->
+  compiler = ide.compiler
+  form = $("<form>")
+  form.attr("action", "/#{compiler}/#{action}")
+  form.attr("method", "post")
+  params = get_compile_params(ide)
+  if p
+    jQuery.extend(params, p)
+
+  for item, value of params
+    input = switch $.type(value)
+              when 'array'
+                input_of_array(item, value)
+              else
+                input_of_value(item, value)
+      form.append input
+  form.submit()
+
 download_code = (ide) ->
   compile_code ide, "compile",{save:1}, (res) ->
     if res.status != 0
-      display_compile_results(ide,res)
+      display_compile_results(ide, res)
       return
-    compiler = ide.compiler
-    form = $("<form>")
-    form.attr("action","/#{compiler}/download")
-    form.attr("method","post")
-    params = get_compile_params(ide)
-    params.original_file = res.output
-    for item, value of params
-      input = switch $.type(value)
-              when 'array'
-                input_of_array(item,value)
-              else
-                input_of_value(item,value)
-      form.append input
-    form.submit()
+    post_ide(ide, "download", {original_file: res.output})
+
+download_binary = (ide) ->
+  compile_code ide, "compile", {save:1}, (res) ->
+    if res.status != 0
+      display_compile_results(ide, res)
+      return
+    post_ide(ide, "download-exe", {original_file: res.output})
 
 handle_file = (input,ide) ->
   if input.files.length == 0

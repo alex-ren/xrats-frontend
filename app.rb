@@ -33,7 +33,7 @@ helpers do
   def render_flags flags
     flags.join(" ") unless flags.nil?
   end
-
+  
   def ats_editor flags
     flags[:runtime_flags] ||= []
     flags[:compile_flags] ||= []
@@ -58,7 +58,7 @@ end
 def save_session hashcode, data
   raise Sinatra::NotFound unless hashcode =~ /^[A-Za-z0-9\-_]+$/
   
-  File.open("data/sessions/#{hashcode}","w+") do |session|
+  File.open("data/sessions/#{hashcode}", "w+") do |session|
     session.puts(data.to_json)
   end
 end
@@ -166,20 +166,19 @@ def make_xref folder,repo,path
   output
 end
 
-def atscc_jailed param
+def atscc_jailed params
   res = ""
   input = params.to_json
-  
   jailed_command = "lib/atscc-jailed"
-
+  
   status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
     stdin.puts(input)
     stdin.close
     res = stdout.read
   end
-
+  
   res = escape_html res
-
+  
   if status.to_i != 0
     res = "Killed" if res.empty?
   end
@@ -264,6 +263,12 @@ def download_project params
   response.headers['X-Accel-Redirect'] = "/export/#{tar}"
 end
 
+def download_exe params
+  response.headers['Content-Type'] = "application/x-gzip"
+  response.headers['Content-Disposition'] = "attachment; filename=#{}"
+  response.headers['X-Accel-Redirect'] = "/export/#{}"
+end
+
 post '/:compiler/:action' do |compiler,action|
 
   save_session(params[:hashcode], params) if params[:hashcode]
@@ -274,6 +279,8 @@ post '/:compiler/:action' do |compiler,action|
   when "run"
   when "download"
     return download_project params
+  when "download-exe"
+    return download_exe params
   when "save"
     content_type :json
     return {status:0,output:"Saved Successfully!"}.to_json
@@ -329,6 +336,11 @@ get "/code/:compiler/:hash" do |compiler,hash|
     title = "ATS"
     canned = @session["input"] ||  open("config/helloworld.dats").read()
     actions = ["typecheck","compile","run","save"]
+  when "avr_ats"
+    title = "AVR ATS"
+    canned = @session["input"] || open("config/blinkey.dats").read()
+    actions = ["typecheck", "compile", "save"]
+    @session["arch"] = "avr"
   when "patsopt"
     title = "ATS2"
     canned = @session["input"] || open("config/fibonacci.dats").read()
