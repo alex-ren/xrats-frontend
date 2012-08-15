@@ -8,6 +8,6 @@
 .row
   %ul.nav.nav-pills.nav-stacked#index
   .span6#code
-    = ats_editor({compiler: "ats", actions: ["typecheck","compile","run"]})
+    = ats_editor({compiler: "ats", actions: ["typecheck","compile","run"], download_binary: false})
   .span6#content
     = erb :slides
