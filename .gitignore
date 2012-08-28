@@ -6,3 +6,5 @@ config/repos.yml
 config/ats.yml
 config/sphinx.conf
 config/app.yml
+lib/atscc-jailed
+lib/input
