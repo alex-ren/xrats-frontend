@@ -1,5 +1,5 @@
 all: atscc-jailed
 
 atscc-jailed: atscc-jailed.c
-	gcc -g -o $@ $< -ljansson
+	gcc -g  -o $@ $< -ljansson -lm
 	chmod u+s $@

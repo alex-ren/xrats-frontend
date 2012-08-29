@@ -3,9 +3,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
 #include <jansson.h>
+#include <math.h>
 
 #define BUFF_INIT_SIZE 80
 
@@ -94,16 +96,59 @@ char *random_string() {
   return buf;
 }
 
+int reverse_digits(int target) {
+  int base = 10;
+  int rem = 0;
+  int res = 0;
+
+  do {
+    rem = target % base;
+    res *= base;
+    
+    res += rem;
+  } while( target /= base );
+
+  return res;
+}
+
 void drop_privilege() {
-  struct passwd *nobody = getpwnam("nobody");
+  //getpwnam wouldn't work with the
+  //64bit program suddenly running in the 
+  //32bit world.
+  char c;
+  int i = 0;
+  int j = 0;
+  unsigned int uid = 0;
+  unsigned int gid = 0;
+  
+  int count = 0;
+  
+  //The 2nd and 3rd entry are uid and gid.
+  FILE *nobody = popen("/usr/bin/getent passwd nobody", "r");
   
   if(!nobody) {
-    perror("Could not drop privileges.");
+    perror("Could not run getent.");
     exit(1);
   }
+  
+  while( (c = fgetc(nobody)) != EOF ) {
+    if (c == ':')
+      count++;
+    else if( count == 2 && isdigit(c))
+      uid += pow(10, i++) * ( c - 0x30 );
+    else if( count == 3 && isdigit(c))
+      gid += pow(10, j++) * (c - 0x30);
+    else if( count > 3)
+      break;
+  }
 
-  if ( setuid(nobody->pw_uid) < 0 ||
-       setgid(nobody->pw_gid) < 0  ) {
+  pclose(nobody);
+  
+  uid = reverse_digits(uid);
+  gid = reverse_digits(gid);
+
+  if ( setgid(gid) < 0 ||
+       setuid(uid) < 0  ) {
     perror("Couldn't drop privileges.");
     exit(1);
   }
@@ -133,6 +178,8 @@ void compile (json_t *args, json_t *config) {
     fprintf(stderr, "Invalid Compiler %s\n", compiler_name);
     exit(1);
   }
+  
+  
   
   return;
 }
