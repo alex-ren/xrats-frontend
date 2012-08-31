@@ -11,32 +11,22 @@
 
 #define BUFF_INIT_SIZE 80
 
-typedef struct {
-  char *key;
-  char *value;
-} keyval_t;
+#define count(a, b, sz) (((unsigned long)b - (unsigned long)a)/sz) + 1
 
-typedef struct {
-  char *name;
-  struct  {
-    char *path;
-    char **compile_flags;
-    char **runtime_flags;
-    char *compiler_format;
-  } options;
-  keyval_t env [3];
-} compiler_t;
-
-#define count(a, b) ((unsigned long)b - (unsigned long)a + 1)
+void die(char *msg) {
+  fprintf(stderr,"%s\n", msg);
+  exit(1);
+}
 
 char * read_input() {
   char *str = (char*)malloc(sizeof(char)*BUFF_INIT_SIZE);
-  char *end = &str[BUFF_INIT_SIZE];
+  char *end = &str[BUFF_INIT_SIZE - 1];
   char *s = str;
   
   char c;
   int curr;
-  
+  int cnt;
+
   if(!str)
     return NULL;
   
@@ -45,21 +35,22 @@ char * read_input() {
     
     if(s == end) {
       curr = s - str;
-      str = realloc(str,sizeof(char)*count(str,end)*2);
+      cnt = count(str, end, sizeof(char));
+      str = realloc(str,cnt * 2);
       
       if(!str)
         return NULL;
 
-      end = &str[count(str,end)*2];
+      end = &str[cnt*2 - 1];
       s = &str[curr];
     }
   }
-
+  
   *s = 0;
   
   //Trim as needed.
-  if(count(str,end) > count(str,s)
-     && !(str = realloc(str, sizeof(char)*count(str,s))))
+  if(count(str,end,sizeof(char)) > count(str,s,sizeof(char))
+     && !(str = realloc(str, count(str,s,sizeof(char)))))
     return NULL;
   
   return str;
@@ -146,7 +137,7 @@ void drop_privilege() {
   
   uid = reverse_digits(uid);
   gid = reverse_digits(gid);
-
+  
   if ( setgid(gid) < 0 ||
        setuid(uid) < 0  ) {
     perror("Couldn't drop privileges.");
@@ -154,21 +145,50 @@ void drop_privilege() {
   }
 }
 
+void check_buffer(void **start, void **end, void **curr, size_t sz) {
+  int cnt = count(*start, *end, sz);
+  int cnt_set = count(*start, *curr, sz);
+
+  if(*start == *end) {
+    *start = realloc(*start, sz * cnt * 2);
+    
+    if(!*start)
+      die("out of memory.");
+
+    *end = *start + (cnt * 2 * sz);
+    *curr = *start + (cnt_set * sz);
+  }
+  return;
+}
+
 void compile (json_t *args, json_t *config) {
-  json_t *compiler = json_object_get(args, "compiler");
-  json_t *options;
-  const char *compiler_name;
+  json_t *compiler, *options, *path, *compile_flags, 
+    *runtime_flags, *env, *fmt, *tmp;
+  
+  json_t *name, *val;
+  
   char *filename = random_string();
+  
+  const char *compiler_name;
+  
+  const char **command = malloc(sizeof(char*) * 8);
+  const char **end = &command[7];
+  const char **cc = command;
+  
+  char *p;
+  
+  int i;
 
-  if(!filename) {
-    fprintf(stderr,"An error occurred...\n");
-    exit(1);
-  }
+  compiler = json_object_get(args, "compiler");
 
-  if(!json_is_string(compiler)) {
-    fprintf(stderr,"Compiler must be a string\n");
-    exit(1);
-  }
+  if(!compiler)
+    die("Invalid compiler given...\n");
+  
+  if(!filename)
+    die("An error occurred...\n");
+
+  if(!json_is_string(compiler))
+    die("Compiler must be a string\n");
 
   compiler_name = json_string_value(compiler);
   
@@ -178,9 +198,61 @@ void compile (json_t *args, json_t *config) {
     fprintf(stderr, "Invalid Compiler %s\n", compiler_name);
     exit(1);
   }
+
+  //Set the environment
+  env = json_object_get(options, "env");
   
+  if(!env || !json_is_array(env) )
+    die("Invalid env given");
   
+  for(i = 0; i < json_array_size(env);  i++ ) {
+    tmp = json_array_get(env, i);
+    
+    if(!json_is_object(tmp))
+      die("Invalid entry in env");
+
+    name = json_object_get(tmp,"name");
+    
+    if(!name || !json_is_string(name))
+      die("Invalid name in env");
+    
+    val = json_object_get(tmp, "val");
+
+    if(!val || json_is_string(val)) 
+      die("Invalid value in val");
+    
+    if( setenv(json_string_value(name), json_string_value(val), 0) < 0 ) {
+      perror("setenv failed.");
+      exit(1);
+    }
+  }
   
+  //Assemble the command
+  path = json_object_get(options, "path");
+  
+  if( !path ||  !json_is_string(path) )
+    die("No path given in configuration...");
+  
+  *cc++ = json_string_value(path);
+  
+  fmt = json_object_get(options, "compiler_fmt");
+  
+  if( !fmt || !json_is_string(fmt) )
+    die("Compiler Format must be a string.");
+  
+  //Replace the format
+  p = malloc(sizeof(char)*(strlen(json_string_value(fmt))+1));
+  strncpy(p, json_string_value(fmt), strlen(json_string_value(fmt)+1));
+  
+  p = strtok(p, " ");
+  
+  while(p) {
+    *cc++ = (strcmp(p,"__filename__") == 0) ? filename : p;
+    p = strtok(NULL, " ");
+    check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
+  }
+
+  *++cc = NULL;
   return;
 }
 
@@ -199,10 +271,8 @@ int main () {
     return 1;
   }
   
-  if(!json_is_object(config)) {
-    fprintf(stderr, "error, the config json must be an object.");
-    return 1;
-  }
+  if(!json_is_object(config))
+    die("error, the config json must be an object.");
 
   if( chdir("/opt/atscc-jail") < 0) {
     perror("Couldn't cd to jail.");
@@ -218,10 +288,8 @@ int main () {
 
   json = read_input();
   
-  if(!json) {
-    fprintf(stderr, "Problem with parsing input..\n");
-    return 1;
-  }
+  if(!json)
+    die("Problem with parsing input..\n");
 
   root = json_loads(json, 0, &error);
   free(json);
@@ -231,10 +299,8 @@ int main () {
     return 1;
   }
   
-  if(!json_is_object(root)) {
-    fprintf(stderr, "error, the root must be an object.");
-    return 1;
-  }
-  
+  if(!json_is_object(root))
+    die("error, the root must be an object.");
+
   compile(root, config);
 }
