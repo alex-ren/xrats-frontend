@@ -171,9 +171,10 @@ def atscc_jailed params
   input = params.to_json
   jailed_command = "lib/atscc-jailed"
 
-  status = Open4::popen4(jailed_command) do |pid,stdin,stdout,stderr|
+  status = Open4::popen4(jailed_command) do |pid, stdin, stdout, stderr|
     stdin.puts(input)
     stdin.close
+    puts stderr.read
     res = stdout.read
   end
   

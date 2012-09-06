@@ -1,11 +1,23 @@
+/**
+   The entry point for the chroot environment used by the online compiler.
+*/
+
+#include <sys/ptrace.h>
 #include <sys/types.h>
-#include <pwd.h>
+#include <sys/wait.h>
+#include <sys/syscall.h>
+#include <sys/reg.h>
+#include <sys/user.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
+
 #include <jansson.h>
 #include <math.h>
 
@@ -13,47 +25,29 @@
 
 #define count(a, b, sz) (((unsigned long)b - (unsigned long)a)/sz) + 1
 
+void run_user_code(char *, json_t *);
+void compile(json_t *, json_t *);
+
+void (*catch_exec)(int);
+
 void die(char *msg) {
   fprintf(stderr,"%s\n", msg);
   exit(1);
 }
 
-char * read_input() {
-  char *str = (char*)malloc(sizeof(char)*BUFF_INIT_SIZE);
-  char *end = &str[BUFF_INIT_SIZE - 1];
-  char *s = str;
-  
-  char c;
-  int curr;
-  int cnt;
+inline kill_child(char *error, int child) {
+  ptrace(PTRACE_KILL,child,0,0);
+  die(error);
+}
 
-  if(!str)
-    return NULL;
-  
-  while( (c = fgetc(stdin)) != EOF) {
-    *s++ = c;
-    
-    if(s == end) {
-      curr = s - str;
-      cnt = count(str, end, sizeof(char));
-      str = realloc(str,cnt * 2);
-      
-      if(!str)
-        return NULL;
+void exec_exn(int child) {
+  kill_child("SYS_execve is not permitted", child);
+  return;
+}
 
-      end = &str[cnt*2 - 1];
-      s = &str[curr];
-    }
-  }
-  
-  *s = 0;
-  
-  //Trim as needed.
-  if(count(str,end,sizeof(char)) > count(str,s,sizeof(char))
-     && !(str = realloc(str, count(str,s,sizeof(char)))))
-    return NULL;
-  
-  return str;
+void initial_exec(int child) {
+  catch_exec = exec_exn;
+  return;
 }
 
 char *random_string() {
@@ -139,7 +133,7 @@ void drop_privilege() {
   gid = reverse_digits(gid);
   
   if ( setgid(gid) < 0 ||
-       setuid(uid) < 0  ) {
+       setreuid(uid, uid) < 0  ) {
     perror("Couldn't drop privileges.");
     exit(1);
   }
@@ -161,9 +155,172 @@ void check_buffer(void **start, void **end, void **curr, size_t sz) {
   return;
 }
 
-void compile (json_t *args, json_t *config) {
+int fork_exec_err(char ** argv) {
+  int pipefd[2];
+  int child;
+  int status;
+  int success;
+  int dnull_no;
+
+  char c;
+
+  FILE *err;
+  FILE *dnull = fopen("/dev/null","w");
+
+  if(!dnull) 
+    die("Couldn't open dnull.");
+  
+  dnull_no = fileno(dnull);
+
+  if(pipe(pipefd) == -1)
+    die("Pipe failed");
+  
+  if( child = fork() ) {
+    close(pipefd[1]);
+    wait(&status);
+  } else if (child == 0)  {
+    close(pipefd[0]);
+
+    dup2(pipefd[1], STDERR_FILENO);
+    //dup2(dnull_no, STDOUT_FILENO);
+    
+    if(execvp(argv[0], argv)) {
+      perror("Exec failed.");
+      exit(1);
+    }
+  } else
+    die("Fork failed.");
+  
+  success = !status;
+  
+  if(!success) {
+    err = fdopen(pipefd[0], "r");
+    
+    if(!err)
+      die("fdopen failed.");
+    
+    while( (c = fgetc(err)) != EOF)
+      putchar(c);
+  }
+
+  return success;
+}
+
+inline void verify_syscall(int child, unsigned long call) {
+  switch(call) {
+  case SYS_fork:
+  case SYS_clone:
+  case SYS_vfork:
+    kill_child("SYS_(v)fork and SYS_clone are not permitted.", child);
+    break;
+  case SYS_sigaltstack:
+  case SYS_kill:
+  case SYS_futex:
+  case SYS_ipc:
+    kill_child("IPC is not permitted.", child);
+    break;
+  case SYS_ioctl:
+    kill_child("SYS_ioctl is not permitted.", child);
+    break;
+  case SYS_ptrace:
+    kill_child("SYS_ptrace is not permitted.", child);
+    break;
+  case SYS_fchmod:
+  case SYS_fchmodat:
+  case SYS_chmod:
+    kill_child("chmod operations are not permitted.", child);
+    break;
+  case SYS_creat:
+    kill_child("No file operations are permitted.", child);
+  case SYS_syslog:
+    kill_child("SYS_syslog is not permitted.", child);
+  case SYS_chdir:
+    kill_child("SYS_chdir is not permitted.", child);
+    break;
+  case SYS_socketcall:
+    kill_child("SYS_socketcall is not permitted", child);
+  case SYS_execve:
+    catch_exec(child);
+    break;
+  default:
+    //fprintf(stderr,"%lu\n",call);
+    break;
+  }
+}
+
+void patrol_syscalls(int child) {
+  struct user_regs_struct uregs;
+  int status;
+  while (1) {
+    wait(&status);
+    if(WIFEXITED(status)) {
+      break;
+    }
+    ptrace(PTRACE_GETREGS,child,0,&uregs);
+    verify_syscall(child,uregs.orig_eax);
+    ptrace(PTRACE_SYSCALL,child,0,0);
+  }
+}
+
+void run_user_code(char *filename, json_t *args) {
+  int pid;
+  int status;
+  int i;
+  json_t *flags;
+  char **argv;
+
+  //filenames have a max len of 10
+  char buf[15];
+  
+  json_t *command = json_array();
+  
+  if(!command)
+    die("Could not create runtime arguments array.");
+  
+  snprintf(buf, 15, "/tmp/%s", filename);
+  
+  if( json_array_insert(command, 0, json_string(buf)))
+    die("Couldn't insert filename into argv.");
+  
+  catch_exec = initial_exec;
+  
+  //Build the runtime arguments
+  flags = json_object_get(args, "runtime_flags");
+  
+  if(!flags)
+    flags = json_array();
+  
+  if(!json_is_array(flags) ||
+     json_array_extend(command, flags))
+    die("Couldn't append runtime flags to the command.");
+  
+  argv = malloc(sizeof(char*) * (json_array_size(flags) + 1) );
+  
+  if(!argv)
+    die("Couldn't allocate the command buffer.");
+  
+  for(i = 0; i < json_array_size(flags); i++)
+    argv[i] = (char *)json_string_value(json_array_get(flags, i));
+  
+  argv[i] = NULL;
+  
+  if( ( pid = fork() ) > 0 )
+    patrol_syscalls(pid);
+  else if (pid == 0) {
+    dup2(STDOUT_FILENO, STDERR_FILENO);
+    ptrace(PTRACE_TRACEME, 0, 0, 0);
+    if(execvp(argv[0], argv)) {
+      perror("exec failed");
+      exit(1);
+    }
+  } else
+    die("fork failed");
+}
+
+void compile(json_t *args, json_t *config) {
   json_t *compiler, *options, *path, *compile_flags, 
-    *runtime_flags, *env, *fmt, *tmp;
+    *runtime_flags, *env, *fmt, *tmp, *typecheck, *run,
+    *save;
   
   json_t *name, *val;
   
@@ -171,13 +328,15 @@ void compile (json_t *args, json_t *config) {
   
   const char *compiler_name;
   
-  const char **command = malloc(sizeof(char*) * 8);
-  const char **end = &command[7];
-  const char **cc = command;
+  char **command = malloc(sizeof(char*) * 8);
+  char **end = &command[7];
+  char **cc = command;
   
   char *p;
   
   int i;
+
+  json_t *buf[2];
 
   compiler = json_object_get(args, "compiler");
 
@@ -211,17 +370,17 @@ void compile (json_t *args, json_t *config) {
     if(!json_is_object(tmp))
       die("Invalid entry in env");
 
-    name = json_object_get(tmp,"name");
+    name = json_object_get(tmp, "name");
     
     if(!name || !json_is_string(name))
       die("Invalid name in env");
     
     val = json_object_get(tmp, "val");
-
-    if(!val || json_is_string(val)) 
+    
+    if(!val || !json_is_string(val))
       die("Invalid value in val");
     
-    if( setenv(json_string_value(name), json_string_value(val), 0) < 0 ) {
+    if( setenv(json_string_value(name), json_string_value(val), 1) < 0 ) {
       perror("setenv failed.");
       exit(1);
     }
@@ -233,7 +392,7 @@ void compile (json_t *args, json_t *config) {
   if( !path ||  !json_is_string(path) )
     die("No path given in configuration...");
   
-  *cc++ = json_string_value(path);
+  *cc++ = (char *)json_string_value(path);
   
   fmt = json_object_get(options, "compiler_fmt");
   
@@ -242,17 +401,60 @@ void compile (json_t *args, json_t *config) {
   
   //Replace the format
   p = malloc(sizeof(char)*(strlen(json_string_value(fmt))+1));
-  strncpy(p, json_string_value(fmt), strlen(json_string_value(fmt)+1));
+  strncpy(p, json_string_value(fmt), strlen(json_string_value(fmt))+1);
   
   p = strtok(p, " ");
   
   while(p) {
-    *cc++ = (strcmp(p,"__filename__") == 0) ? filename : p;
+    *cc++ = (strstr(p, "__filename__") == NULL) ? p : filename;
     p = strtok(NULL, " ");
     check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
   }
 
-  *++cc = NULL;
+  //Add in the compile flags
+  buf[0] = options;
+  buf[1] = args;
+
+  for(i = 0; i < 2; i++) {
+    compile_flags = json_object_get(buf[i], "compile_flags");
+    
+    if(!compile_flags)
+      continue;
+    
+    if(!json_is_array(compile_flags))
+      die("Invalid Compile flags given.");
+  
+    for(i = 0; i < json_array_size(compile_flags); i++) {
+      tmp = json_array_get(compile_flags, i);
+      
+      if(!tmp || !json_is_string(tmp))
+        die("Invalid compiler flag given");
+      
+      *cc++ = (char *)json_string_value(tmp);
+      check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
+    }
+  }
+  
+  *cc = NULL;
+  
+  if(chdir("/tmp"))
+    die("Couldn't enter /tmp");
+  
+  //Success
+  if( fork_exec_err(command) ) {
+    if(typecheck = json_object_get(args, "typecheck"))
+      printf("Your code has been successfully typechecked!");
+    else if( run = json_object_get(args, "run"))
+      run_user_code(filename, args);
+    else if( (save = json_object_get(args, "save")) &&
+             json_is_true(save))
+      printf("%s", filename);
+    else
+      printf("Your code has been successfully compiled!");
+  }
+  
+  free(command);
+  free(filename);
   return;
 }
 
@@ -260,11 +462,15 @@ int main () {
   json_t *root;
   json_t *config;
   
+  json_t *action, *compile_flags, *run;
+  
+  char *action_str;
+
   json_error_t error;
-
+  
   char *json;
-
-  config = json_load_file("compilers.json", 0, &error);
+  
+  config = json_load_file("lib/compilers.json", 0, &error);
   
   if(!config) {
     fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
@@ -273,7 +479,7 @@ int main () {
   
   if(!json_is_object(config))
     die("error, the config json must be an object.");
-
+  
   if( chdir("/opt/atscc-jail") < 0) {
     perror("Couldn't cd to jail.");
     exit(1);
@@ -284,15 +490,9 @@ int main () {
     exit(1);
   }
 
+  root = json_load_file("/dev/stdin", 0, &error);
+
   drop_privilege();
-
-  json = read_input();
-  
-  if(!json)
-    die("Problem with parsing input..\n");
-
-  root = json_loads(json, 0, &error);
-  free(json);
   
   if(!root) {
     fprintf(stderr, "error: on line %d: %s\n", error.line, error.text);
@@ -302,5 +502,30 @@ int main () {
   if(!json_is_object(root))
     die("error, the root must be an object.");
 
+  action = json_object_get(root, "action");
+  
+  if(!action || !json_is_string(action))
+    die("Action not given\n");
+
+  if( strcmp(json_string_value(action), "typecheck") == 0 ) {
+    compile_flags = json_object_get(root, "compile_flags");
+    
+    if(!compile_flags) {
+      compile_flags = json_array();
+      if(json_object_set(root, "compile_flags", compile_flags))
+        die("Couldn't add compile_flags to root.");
+    }
+    else if (!json_is_array(compile_flags))
+      die("Invalid compile flags given.");
+    
+    if( json_array_append(compile_flags, json_string("-tc")))
+      die("Couldn't append to compile flags");
+    
+    json_object_set(root, "typecheck", json_true());
+  } else if (strcmp(json_string_value(action), "run") == 0)
+    json_object_set(root,"run", json_true());
+  
   compile(root, config);
+
+  return EXIT_SUCCESS;
 }

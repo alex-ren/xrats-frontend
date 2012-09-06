@@ -1,11 +1,11 @@
 {"ats":{
-  "path": "/opt/ats-0.2.7/bin/atscc",
+  "path": "/opt/ats-0.2.7/bin/atscc-stdin",
   "compile_flags": [],
   "runtime_flags": [],
   "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
           {"name":"ATSHOMERELOC","val":"ATS-0.2.8"}
          ],
-  "compiler_fmt": " -o __filename__ __filename__.dats"
+  "compiler_fmt": "-o __filename__"
  },
 "avrats":{
   "path": "/opt/ats-0.2.7/bin/avr-atscc",
@@ -14,13 +14,13 @@
   "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
           {"name":"ATSHOMERELOC","val":"ATS-0.2.8"}
          ],
-  "compiler_fmt": " -o __filename__ __filename__.dats"
+  "compiler_fmt": "-o __filename__ -"
 },
 "patsopt":{
  "path": "/opt/postiats/bin/patsopt",
  "compile_flags": [],
  "runtime_flags": [],
  "env": [{"name":"PATSHOME","val":"/opt/postiats"}],
- "compiler_fmt": " -o __filename__ __filename__.dats"
+ "compiler_fmt": "--dynamic"
 }
 }
