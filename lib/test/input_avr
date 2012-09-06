@@ -1,0 +1,1 @@
+{"input":"staload \"SATS/io.sats\"\n  \n  implement main () = {\n    val () = setbits(DDRB,DDB3)\n    val () = setbits(PORTB, PORTB3)\n  }","hashcode":"A-vs7q-zpPg","arch":"avr","filename":"foo","splat":[],"captures":["avrats","typecheck"],"compiler":"avrats","action":"typecheck"}

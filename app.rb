@@ -171,11 +171,14 @@ def atscc_jailed params
   input = params.to_json
   jailed_command = "lib/atscc-jailed"
 
+  puts input
+
   status = Open4::popen4(jailed_command) do |pid, stdin, stdout, stderr|
     stdin.puts(input)
     stdin.close
     puts stderr.read
     res = stdout.read
+    puts res
   end
   
   res = escape_html res
@@ -197,7 +200,7 @@ eos
   formatted = res.split("\n")
   formatted.map! do |line|
     # patsopt throws errors in the prelude, we only want our errors.
-    if line =~ /^(&#x2F;tmp|syntax error)/
+    if line =~ /^(stdin|:|syntax error)/
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\).*?\(line=(\d+), offs=(\d+)\)/,
                       range_err_replace)
       replace_pattern(line,/\(line=(\d+), offs=(\d+)\)/,
@@ -276,11 +279,12 @@ def download_exe params
   src.gsub! /^#{tmp}\/downloads\//, ""
   
   response.headers['Content-Type'] = "application/x-gzip"
-  response.headers['Content-Disposition'] = "attachment; filename=#{params["filename"]}.hex"
+  response.headers['Content-Disposition'] =
+    "attachment; filename=#{params["filename"]}.hex"
   response.headers['X-Accel-Redirect'] = "/export/#{src}"
 end
 
-post '/:compiler/:action' do |compiler,action|
+post '/:compiler/:action' do |compiler, action|
   
   save_session(params[:hashcode], params) if params[:hashcode]
   

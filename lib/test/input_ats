@@ -1,0 +1,1 @@
+{"input":"implement main () = print \"Hello World!\"","hashcode":"5Lvofnn72GI","arch":"x86_64","filename":"foo","splat":[],"captures":["ats","typecheck"],"compiler":"ats","action":"run"}

@@ -50,6 +50,44 @@ void initial_exec(int child) {
   return;
 }
 
+char * read_input() {
+  char *str = (char*)malloc(sizeof(char)*BUFF_INIT_SIZE);
+  char *end = &str[BUFF_INIT_SIZE - 1];
+  char *s = str;
+  
+  char c;
+  int curr;
+  int cnt;
+
+  if(!str)
+    return NULL;
+  
+  while( (c = fgetc(stdin)) != EOF) {
+    *s++ = c;
+    
+    if(s == end) {
+      curr = s - str;
+      cnt = count(str, end, sizeof(char));
+      str = realloc(str,cnt * 2);
+      
+      if(!str)
+        return NULL;
+
+      end = &str[cnt*2 - 1];
+      s = &str[curr];
+    }
+  }
+  
+  *s = 0;
+  
+  //Trim as needed.
+  if(count(str,end,sizeof(char)) > count(str,s,sizeof(char))
+     && !(str = realloc(str, count(str,s,sizeof(char)))))
+    return NULL;
+  
+  return str;
+}
+
 char *random_string() {
 
   int i;
@@ -133,7 +171,7 @@ void drop_privilege() {
   gid = reverse_digits(gid);
   
   if ( setgid(gid) < 0 ||
-       setreuid(uid, uid) < 0  ) {
+       setuid(uid) < 0  ) {
     perror("Couldn't drop privileges.");
     exit(1);
   }
@@ -141,22 +179,23 @@ void drop_privilege() {
 
 void check_buffer(void **start, void **end, void **curr, size_t sz) {
   int cnt = count(*start, *end, sz);
-  int cnt_set = count(*start, *curr, sz);
+  int cnt_set = (*curr - *start)/sz;
 
-  if(*start == *end) {
+  if(*curr == *end) {
     *start = realloc(*start, sz * cnt * 2);
     
     if(!*start)
       die("out of memory.");
-
-    *end = *start + (cnt * 2 * sz);
+    
+    *end = *start + (cnt * 2 * sz - 1);
     *curr = *start + (cnt_set * sz);
   }
   return;
 }
 
-int fork_exec_err(char ** argv) {
+int fork_exec_err(char ** argv, char *data) {
   int pipefd[2];
+  int pipedata[2];
   int child;
   int status;
   int success;
@@ -166,6 +205,7 @@ int fork_exec_err(char ** argv) {
 
   FILE *err;
   FILE *dnull = fopen("/dev/null","w");
+  FILE *pipew;
 
   if(!dnull) 
     die("Couldn't open dnull.");
@@ -174,21 +214,35 @@ int fork_exec_err(char ** argv) {
 
   if(pipe(pipefd) == -1)
     die("Pipe failed");
+
+  if(pipe(pipedata) == -1)
+    die("Pipe failed");
   
   if( child = fork() ) {
+    pipew = fdopen(pipedata[1], "w");
+
+    if(fputs(data, pipew) == EOF ) 
+      die("Couldn't send data to child process.");
+    
+    fclose(pipew);
+
+    close(pipedata[0]);
     close(pipefd[1]);
+
     wait(&status);
   } else if (child == 0)  {
     close(pipefd[0]);
-
+    close(pipedata[1]);
+    dup2(pipedata[0], STDIN_FILENO);
     dup2(pipefd[1], STDERR_FILENO);
-    //dup2(dnull_no, STDOUT_FILENO);
+    dup2(dnull_no, STDOUT_FILENO);
     
-    if(execvp(argv[0], argv)) {
-      perror("Exec failed.");
-      exit(1);
-    }
-  } else
+    execvp(argv[0], argv);
+    
+    perror("Exec failed.");
+    exit(1);
+  }
+  else
     die("Fork failed.");
   
   success = !status;
@@ -270,14 +324,14 @@ void run_user_code(char *filename, json_t *args) {
   char **argv;
 
   //filenames have a max len of 10
-  char buf[15];
+  char buf[16];
   
   json_t *command = json_array();
   
   if(!command)
     die("Could not create runtime arguments array.");
   
-  snprintf(buf, 15, "/tmp/%s", filename);
+  snprintf(buf, 16, "/tmp/%s", filename);
   
   if( json_array_insert(command, 0, json_string(buf)))
     die("Couldn't insert filename into argv.");
@@ -294,13 +348,13 @@ void run_user_code(char *filename, json_t *args) {
      json_array_extend(command, flags))
     die("Couldn't append runtime flags to the command.");
   
-  argv = malloc(sizeof(char*) * (json_array_size(flags) + 1) );
+  argv = malloc(sizeof(char*) * (json_array_size(command) + 1) );
   
   if(!argv)
     die("Couldn't allocate the command buffer.");
   
-  for(i = 0; i < json_array_size(flags); i++)
-    argv[i] = (char *)json_string_value(json_array_get(flags, i));
+  for(i = 0; i < json_array_size(command); i++)
+    argv[i] = (char *)json_string_value(json_array_get(command, i));
   
   argv[i] = NULL;
   
@@ -309,10 +363,10 @@ void run_user_code(char *filename, json_t *args) {
   else if (pid == 0) {
     dup2(STDOUT_FILENO, STDERR_FILENO);
     ptrace(PTRACE_TRACEME, 0, 0, 0);
-    if(execvp(argv[0], argv)) {
-      perror("exec failed");
-      exit(1);
-    }
+    execvp(argv[0], argv);
+    
+    perror("exec failed");
+    exit(1);
   } else
     die("fork failed");
 }
@@ -320,7 +374,7 @@ void run_user_code(char *filename, json_t *args) {
 void compile(json_t *args, json_t *config) {
   json_t *compiler, *options, *path, *compile_flags, 
     *runtime_flags, *env, *fmt, *tmp, *typecheck, *run,
-    *save;
+    *save, *input;
   
   json_t *name, *val;
   
@@ -328,16 +382,16 @@ void compile(json_t *args, json_t *config) {
   
   const char *compiler_name;
   
-  char **command = malloc(sizeof(char*) * 8);
-  char **end = &command[7];
+  char **command = malloc(sizeof(char*) * 4);
+  char **end = &command[3];
   char **cc = command;
   
   char *p;
   
-  int i;
+  int i, j;
 
   json_t *buf[2];
-
+  
   compiler = json_object_get(args, "compiler");
 
   if(!compiler)
@@ -394,6 +448,30 @@ void compile(json_t *args, json_t *config) {
   
   *cc++ = (char *)json_string_value(path);
   
+  //Add in the compile flags
+  buf[0] = options;
+  buf[1] = args;
+
+  for(i = 0; i < 2; i++) {
+    compile_flags = json_object_get(buf[i], "compile_flags");
+    
+    if(!compile_flags)
+      continue;
+    
+    if(!json_is_array(compile_flags))
+      die("Invalid Compile flags given.");
+  
+    for(j = 0; j < json_array_size(compile_flags); j++) {
+      tmp = json_array_get(compile_flags, j);
+      
+      if(!tmp || !json_is_string(tmp))
+        die("Invalid compiler flag given");
+      
+      *cc++ = (char *)json_string_value(tmp);
+      check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
+    }
+  }
+
   fmt = json_object_get(options, "compiler_fmt");
   
   if( !fmt || !json_is_string(fmt) )
@@ -411,43 +489,26 @@ void compile(json_t *args, json_t *config) {
     check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
   }
 
-  //Add in the compile flags
-  buf[0] = options;
-  buf[1] = args;
-
-  for(i = 0; i < 2; i++) {
-    compile_flags = json_object_get(buf[i], "compile_flags");
-    
-    if(!compile_flags)
-      continue;
-    
-    if(!json_is_array(compile_flags))
-      die("Invalid Compile flags given.");
-  
-    for(i = 0; i < json_array_size(compile_flags); i++) {
-      tmp = json_array_get(compile_flags, i);
-      
-      if(!tmp || !json_is_string(tmp))
-        die("Invalid compiler flag given");
-      
-      *cc++ = (char *)json_string_value(tmp);
-      check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
-    }
+  if(json_object_get(args, "save")) {
+    *cc++ = "--save";
+    check_buffer((void**)&command, (void**)&end, (void**)&cc, sizeof(char*));
   }
-  
+
   *cc = NULL;
-  
+
   if(chdir("/tmp"))
     die("Couldn't enter /tmp");
   
+  if( !(input = json_object_get(args, "input") ) || !json_is_string(input) )
+    die("Invalid ATS Code inputted.");
+  
   //Success
-  if( fork_exec_err(command) ) {
+  if( fork_exec_err(command, (char*)json_string_value(input)) ) {
     if(typecheck = json_object_get(args, "typecheck"))
       printf("Your code has been successfully typechecked!");
     else if( run = json_object_get(args, "run"))
       run_user_code(filename, args);
-    else if( (save = json_object_get(args, "save")) &&
-             json_is_true(save))
+    else if( save = json_object_get(args, "save" ))
       printf("%s", filename);
     else
       printf("Your code has been successfully compiled!");
@@ -490,7 +551,14 @@ int main () {
     exit(1);
   }
 
-  root = json_load_file("/dev/stdin", 0, &error);
+  json = read_input();
+
+  if(!json) 
+    die("Couldn't parse the input.");
+  
+  root = json_loads(json, 0, &error);
+
+  free(json);
 
   drop_privilege();
   
@@ -518,14 +586,14 @@ int main () {
     else if (!json_is_array(compile_flags))
       die("Invalid compile flags given.");
     
-    if( json_array_append(compile_flags, json_string("-tc")))
+    if( json_array_insert(compile_flags, 0, json_string("-tc")))
       die("Couldn't append to compile flags");
     
     json_object_set(root, "typecheck", json_true());
   } else if (strcmp(json_string_value(action), "run") == 0)
     json_object_set(root,"run", json_true());
-  
+
   compile(root, config);
 
-  return EXIT_SUCCESS;
+  return 0;
 }

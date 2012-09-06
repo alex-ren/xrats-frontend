@@ -3,7 +3,7 @@
   "compile_flags": [],
   "runtime_flags": [],
   "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
-          {"name":"ATSHOMERELOC","val":"ATS-0.2.8"}
+          {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
          ],
   "compiler_fmt": "-o __filename__"
  },
@@ -12,7 +12,7 @@
   "compile_flags": ["-h","-mmcu=atmega328p","-DF_CPU=16000000UL"],
   "runtime_flags": [],
   "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
-          {"name":"ATSHOMERELOC","val":"ATS-0.2.8"}
+          {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
          ],
   "compiler_fmt": "-o __filename__ -"
 },
