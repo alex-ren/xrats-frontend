@@ -52,7 +52,7 @@ CMD
     sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
   end
   
-  after "deploy:update_code","deploy:copy_application_config"
+  after "deploy:update_code", "deploy:copy_application_config"
 end
 
 set :unicorn_pid, "#{current_path}/tmp/pids/unicorn.#{application}.pid"
