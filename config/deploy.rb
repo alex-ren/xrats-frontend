@@ -37,11 +37,11 @@ namespace :deploy do
     run "cp #{production_config_path}/sphinx.conf #{release_path}/config/sphinx.conf"
     run "cp #{production_config_path}/app.yml #{release_path}/config/app.yml"
     run <<CMD
-rm -rf #{release_path}/repos && 
+rm -rf #{release_path}/repos &&
 ln -nfs #{production_repos_path}/repos #{release_path}/repos
 CMD
     run <<CMD
-rm -rf #{release_path}/ats && 
+rm -rf #{release_path}/ats &&
 ln -nfs #{production_repos_path}/ats #{release_path}/ats
 CMD
     run <<CMD
