@@ -10,6 +10,7 @@
 #include <sys/user.h>
 #include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
 
 #include <string.h>
 #include <stdlib.h>
@@ -27,8 +28,9 @@
 
 void run_user_code(char *, json_t *);
 void compile(json_t *, json_t *);
+void limit(int, int);
 
-void (*catch_exec)(int);
+static void (*catch_exec)(int);
 
 void die(char *msg) {
   fprintf(stderr,"%s\n", msg);
@@ -207,7 +209,7 @@ int fork_exec_err(char ** argv, char *data) {
   FILE *dnull = fopen("/dev/null","w");
   FILE *pipew;
 
-  if(!dnull) 
+  if(!dnull)
     die("Couldn't open dnull.");
   
   dnull_no = fileno(dnull);
@@ -316,6 +318,15 @@ void patrol_syscalls(int child) {
   }
 }
 
+void limit(int resource, int limit) {
+  struct rlimit r = {limit, limit};
+  if ( setrlimit(resource, &r) != 0 ) {
+    perror("Couldn't set a resource limit.");
+    exit(1);
+  }
+  return;
+}
+
 void run_user_code(char *filename, json_t *args) {
   int pid;
   int status;
@@ -363,6 +374,13 @@ void run_user_code(char *filename, json_t *args) {
   else if (pid == 0) {
     dup2(STDOUT_FILENO, STDERR_FILENO);
     ptrace(PTRACE_TRACEME, 0, 0, 0);
+    
+    limit(RLIMIT_STACK, 8048576);
+    limit(RLIMIT_DATA, 16048576);
+    
+    if(chmod(argv[0], S_IRUSR | S_IXUSR))
+      die("Couldn't restrict write to the binary file.");
+    
     execvp(argv[0], argv);
     
     perror("exec failed");
@@ -375,7 +393,7 @@ void compile(json_t *args, json_t *config) {
   json_t *compiler, *options, *path, *compile_flags, 
     *runtime_flags, *env, *fmt, *tmp, *typecheck, *run,
     *save, *input;
-  
+
   json_t *name, *val;
   
   char *filename = random_string();
@@ -530,6 +548,16 @@ int main () {
   json_error_t error;
   
   char *json;
+  
+  limit(RLIMIT_CPU, 1);
+  limit(RLIMIT_CORE, 0);
+  limit(RLIMIT_LOCKS, 0);
+  limit(RLIMIT_NOFILE, 50);
+  limit(RLIMIT_OFILE, 50);
+  limit(RLIMIT_FSIZE, 150000);
+  
+  if( setpriority(PRIO_PROCESS, 0, PRIO_MAX) )
+    die("Couldn't set process's priority.");
   
   config = json_load_file("lib/compilers.json", 0, &error);
   

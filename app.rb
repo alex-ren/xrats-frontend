@@ -124,7 +124,7 @@ def xref_of_file path, base
     ENV["PATSHOME"] = "/opt/postiats"
     input = File.open(path).read()
     res = ""
-    status = Open4::popen4(cmd+" "+flag) do |pid,stdin,stdout,stderr|
+    status = Open4::popen4(cmd+" "+flag) do |pid, stdin, stdout, stderr|
       stdin.puts(input)
       stdin.close
       res = stdout.read
@@ -174,7 +174,7 @@ def atscc_jailed params
   status = Open4::popen4(jailed_command) do |pid, stdin, stdout, stderr|
     stdin.puts(input)
     stdin.close
-    res = stdout.read
+    res = stderr.read + stdout.read
   end
   
   res = escape_html res
@@ -411,7 +411,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
           when "repos"
             match.empty?
           end
-
+  
   base = Dir.new [folder,repo].join("/")
   
   if !( !error && File.exists?(@rel_path) \
