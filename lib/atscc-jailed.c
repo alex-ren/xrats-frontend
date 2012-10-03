@@ -1,5 +1,5 @@
 /**
-   The entry point for the chroot environment used by the online compiler.
+   The interface for interacting with ATS through a chroot environment.
 */
 
 #include <sys/ptrace.h>
@@ -287,14 +287,17 @@ inline void verify_syscall(int child, unsigned long call) {
     kill_child("chmod operations are not permitted.", child);
     break;
   case SYS_creat:
-    kill_child("No file operations are permitted.", child);
+    kill_child("SYS_creat is not permitted.", child);
+    break;
   case SYS_syslog:
     kill_child("SYS_syslog is not permitted.", child);
+    break;
   case SYS_chdir:
     kill_child("SYS_chdir is not permitted.", child);
     break;
   case SYS_socketcall:
     kill_child("SYS_socketcall is not permitted", child);
+    break;
   case SYS_execve:
     catch_exec(child);
     break;
@@ -620,7 +623,12 @@ int main () {
     json_object_set(root, "typecheck", json_true());
   } else if (strcmp(json_string_value(action), "run") == 0)
     json_object_set(root,"run", json_true());
-
+  
+  if( setenv("PATH",
+             "/usr/local/avr/bin:/usr/local/sbin:/usr/local/bin:"
+             "/usr/sbin:/usr/bin:/sbin:/bin:/usr/X11R6/bin", 1))
+    die("Could not reset path.");
+  
   compile(root, config);
 
   return 0;

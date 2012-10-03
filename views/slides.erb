@@ -1053,14 +1053,14 @@ main () = let
           	 q
          end
  val q = queue_make()
- val q = enqueue(q,4)
- val q = enqueue(q,3)
- val q = enqueue(q,2)
- val q = enqueue(q,1)
- val q = empty(q,4)
+ val q = enqueue(q, 4)
+ val q = enqueue(q, 3)
+ val q = enqueue(q, 2)
+ val q = enqueue(q, 1)
+ val q = empty(q, 4)
  //Try this out and watch the compiler complain
  //var tmp : int
- //val q = dequeue(q,tmp)
+ //val q = dequeue(q, tmp)
 in () end
 </div>
 </div>
@@ -1076,6 +1076,10 @@ on.</p>
 
 <div>
 staload "libats/SATS/linqueue_lst.sats"
+staload "libats/DATS/linqueue_lst.dats"
+
+staload "prelude/DATS/pointer.dats"
+staload "prelude/DATS/list_vt.dats"
 
 datatype tree (a:t@ype) =
   | node (a) of
@@ -1084,7 +1088,7 @@ datatype tree (a:t@ype) =
 
 extern
 fun {a:t@ype} levelorder_traverse
-    (t: tree(a), visit: tree(a) -<fun> void ) : void
+    (t: tree(a), visit: tree(a) -<fun1> void ) : void
 
 implement {a}
 levelorder_traverse (t, visit) =
@@ -1093,31 +1097,34 @@ levelorder_traverse (t, visit) =
   | _ =>> let
     var q : QUEUE0 (tree(a))
     val () = queue_initialize{tree(a)}(q)
-    val () = queue_insert<tree(a)>(q,t)
+    val () = queue_insert<tree(a)>(q, t)
     fun loop {q:nat}
-      (q: &QUEUE(tree(a),q) >> QUEUE(tree(a),0)) : void =
+      (q: &QUEUE(tree(a),q) >> QUEUE(tree(a),0), v: tree(a) -<fun1> void) :<cloref1> void =
       if queue_isnot_empty(q) then let
          val n = queue_remove<tree(a)>(q)
-         val () = visit(n)
+         val () = v(n)
 	  in case+ n of
            | node(_,l,r) => let
-              val () = queue_insert<tree(a)>(q,l)
-              val () = queue_insert<tree(a)>(q,r)
-             in loop(q) end
-           | leaf () => loop(q)
+              val () = queue_insert<tree(a)>(q, l)
+              val () = queue_insert<tree(a)>(q, r)
+             in loop(q, v) end
+           | leaf () => loop(q, v)
        end
-    val xs = queue_uninitialize(q)
-    val () = list_vt_free(xs)
+    val () = loop(q, visit)
+    val xs = queue_uninitialize<tree(a)>(q)
+    val ~list_vt_nil() = xs
   in end
   
 implement 
 main () = let
- val t = node(10,node(4,node(3,leaf(),node(2,leaf(),leaf())),node(1,leaf(),leaf())),node(1,leaf(),leaf()))
- fun visit(t:tree(int)) : void =
- 	case+ t of
-    | node(x,_,_) => println! x
-    | leaf () => (*none*)
- levelorder_traverse<int>(t,visit)
+ val t = node(10,node(4,node(3,leaf(),node(2,leaf(),leaf())),node(1,leaf(),leaf())),
+                 node(1,leaf(),leaf()))
+ fun visit(t: tree(int)) : void =
+    case+ t of
+      | node(x, _, _) => println! x
+      | leaf() => ()
+
+ val () = levelorder_traverse<int>(t, visit)
 in end
 </div>
 </div>
