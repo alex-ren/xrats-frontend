@@ -1,4 +1,8 @@
 development:
  :google_analytics: UA-xxxxxxxxxx
+ :atshome: /opt/ats-0.2.9
+ :patshome: /opt/postiats
 none:
  :google_analytics: UA-32490077-1
+ :atshome: /opt/ats-0.2.9
+ :patshome: /opt/postiats

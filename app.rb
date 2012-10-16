@@ -98,30 +98,30 @@ def listing_of_directory directory
   @directory = Dir.new(directory)
   @entries = @directory.entries
   @entries.select! do |f|
-    not [".","..",".git",".svn"].include? f
+    not [".", "..", ".git", ".svn"].include? f
   end
-  @entries.sort! do |a,b|
-    adir = File.directory? @directory.to_path+"/"+a
-    bdir = File.directory? @directory.to_path+"/"+b
+  @entries.sort! do |a, b|
+    adir = File.directory? @directory.to_path+"/" + a
+    bdir = File.directory? @directory.to_path+"/" + b
     (adir == bdir) ? (a.casecmp(b)) : (adir && !bdir) ? -1 : 1
   end
-  haml :directory_listing, locals:{title:"ATS LXR - "+@directory.to_path}
+  haml :directory_listing, locals: {title: "ATS LXR - "+@directory.to_path}
 end
 
 def xref_of_file path, base
   raise Sinatra::NotFound if not File.exists?(path)
   file_folder = File.dirname(path)
-  atsopt_path = "/opt/ats/bin/atsopt"
-  cmd = "/opt/postiats/utils/atsyntax/pats2html" #For ATS2
+  atsopt_path = $app_config[:atshome] + "/bin/atsopt"
+  cmd = $app_config[:patshome]+"/utils/atsyntax/pats2xhtml" #For ATS2
   flag = ""
   if path.match(/\.dats/)
     flag = "--dynamic"
   end
   if path.match(/\.sats/)
-    flag = "--static"
+    flag = "--embed --static"
   end
   if File.exists? file_folder+"/.ats2"
-    ENV["PATSHOME"] = "/opt/postiats"
+    ENV["PATSHOME"] = $app_config[:patshome]
     input = File.open(path).read()
     res = ""
     status = Open4::popen4(cmd+" "+flag) do |pid, stdin, stdout, stderr|
@@ -131,16 +131,17 @@ def xref_of_file path, base
     end
     res
   else
-    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} #{flag} #{path}`
+    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} \
+    #{flag} #{path}`
   end
 end
 
-def make_xref folder,repo,path
+def make_xref folder, repo, path
   ats_home = ""
   base = ""
   case folder
   when "repos"
-    $repos.each do |name,attr|
+    $repos.each do |name, attr|
       if name == repo
         ats_home= attr["ats"]
         break
@@ -247,8 +248,8 @@ def download_project params
   FileUtils.cp(orig+"_dats.c", src)
   FileUtils.cp_r(lib+"/ats", liba)
   
-  #Process a Makefile Template
-
+  #Todo: Process a Makefile
+  
   tar = "#{dir}/#{params["filename"]}.tar.gz"
   
   files = [tar, src, liba].map do |f|
