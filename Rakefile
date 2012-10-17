@@ -1,5 +1,8 @@
 task :default => :index_repositories
 
 task :index_repositories do
-  sh "indexer --config config/sphinx.conf --all --rotate"
+  index = FileList['repos/*','ats/*']
+  index.each do |i|
+    ruby "lib/index.rb", i, File.basename(i)
+  end
 end

@@ -1,26 +1,26 @@
 {"ats":{
-  "path": "/opt/ats-0.2.7/bin/atscc-stdin",
-  "compile_flags": [],
-  "runtime_flags": [],
-  "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
-          {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
-         ],
-  "compiler_fmt": "-o __filename__"
- },
-"avrats":{
-  "path": "/opt/ats-0.2.7/bin/avr-atscc",
-  "compile_flags": ["-h","-mmcu=atmega328p","-DF_CPU=16000000UL"],
-  "runtime_flags": [],
-  "env": [{"name":"ATSHOME","val":"/opt/ats-0.2.7"},
-          {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
-         ],
-  "compiler_fmt": "-o __filename__ -"
+    "path": "/opt/ats029/bin/atscc-stdin",
+    "compile_flags": [],
+    "runtime_flags": [],
+    "env": [{"name":"ATSHOME","val":"/opt/ats029"},
+            {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
+           ],
+    "compiler_fmt": "-o __filename__"
 },
-"patsopt":{
- "path": "/opt/postiats/bin/patsopt",
- "compile_flags": [],
- "runtime_flags": [],
- "env": [{"name":"PATSHOME","val":"/opt/postiats"}],
- "compiler_fmt": "--dynamic"
-}
+ "avrats":{
+     "path": "/opt/ats029/bin/avr-atscc",
+     "compile_flags": ["-h","-mmcu=atmega328p","-DF_CPU=16000000UL"],
+     "runtime_flags": [],
+     "env": [{"name":"ATSHOME","val":"/opt/ats029"},
+             {"name":"ATSHOMERELOC","val":"ATS-0.2.9"}
+            ],
+     "compiler_fmt": "-o __filename__ -"
+ },
+ "patsopt":{
+     "path": "/opt/postiats/bin/patsopt",
+     "compile_flags": [],
+     "runtime_flags": [],
+     "env": [{"name":"PATSHOME","val":"/opt/postiats"}],
+     "compiler_fmt": "--dynamic"
+ }
 }
