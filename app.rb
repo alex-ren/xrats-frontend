@@ -110,27 +110,27 @@ def xref_of_file path, base
   raise Sinatra::NotFound if not File.exists?(path)
   file_folder = File.dirname(path)
   atsopt_path = $app_config[:atshome] + "/bin/atsopt"
-  cmd = $app_config[:patshome]+"/utils/atsyntax/pats2xhtml" #For ATS2
-  flag = ""
+  cmd = $app_config[:patshome] + "/utils/atsyntax/pats2xhtml" #For ATS2
+  flags = []
   if path.match(/\.dats/)
-    flag = "--dynamic"
+    flags.push "--dynamic"
   end
   if path.match(/\.sats/)
-    flag = "--embed --static"
+    flags.push "--static"
   end
-  if File.exists? file_folder+"/.ats2"
+  if File.exists? file_folder + "/.ats2"
     ENV["PATSHOME"] = $app_config[:patshome]
     input = File.open(path).read()
     res = ""
-    status = Open4::popen4(cmd+" "+flag) do |pid, stdin, stdout, stderr|
+    flags.unshift "--embed"
+    status = Open4::popen4(cmd+" "+flags.join(" ")) do |pid, stdin, stdout, stderr|
       stdin.puts(input)
       stdin.close
       res = stdout.read
     end
     res
   else
-    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{file_folder} \
-    #{flag} #{path}`
+    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{ENV["ATSHOME"]} -IATS #{file_folder} #{flag} #{path}`
   end
 end
 
