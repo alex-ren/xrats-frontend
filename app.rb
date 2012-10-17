@@ -269,6 +269,7 @@ def download_exe params
   orig = "#{tmp}/#{params["original_file"]}.hex"
   src = "#{tmp}/downloads/#{params["filename"]}.hex"
   
+  FileUtils.mkdir_p(tmp)
   FileUtils.cp_r(orig, src)
   
   src.gsub! /^#{tmp}\/downloads\//, ""
