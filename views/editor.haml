@@ -6,31 +6,6 @@
             "data-filename"=>filename}
   %textarea.code-mirror#atscc_input
     = canned
-  %input#attached_file{:type=>"file",:style=>"display:none;"}
-
-  #atsctl.pull-right
-    .btn-group
-      .btn#ats-action{"data-action"=>nil} Actions
-      .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
-        %span.caret
-      %ul.dropdown-menu#action-dropdown
-        - actions.each do |action|
-          %li
-            %a.switch-state{"data-action"=>action}
-              = action.capitalize
-        %li.divider
-        %li
-          %a.switch-state{"data-action"=>"upload"}
-            Upload
-        - if download
-          %li
-            %a.switch-state{"data-action"=>"download"}
-              Download C
-        - if download_binary
-          %li
-            %a.switch-state{"data-action"=>"download_binary"}
-              = download_binary_label
-  #ctl-workspace.pull-right
   - if title
     %h3#console-title.pull-left
       #{title} Output

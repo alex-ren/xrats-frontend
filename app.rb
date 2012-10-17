@@ -191,7 +191,7 @@ eos
    line=\\1, offs=\\2 \
  </button>
 eos
-
+  
   formatted = res.split("\n")
   formatted.map! do |line|
     # patsopt throws errors in the prelude, we only want our errors.
@@ -217,7 +217,7 @@ def download_project params
   basepath = $app_config[:chroot_path]+"/tmp/downloads"
   base = nil
   
-  while true do 
+  while true do
     begin
       base = Dir.new basepath
       break;
@@ -246,7 +246,7 @@ def download_project params
   FileUtils.cp(orig+"_dats.c", src)
   FileUtils.cp_r(lib+"/ats", liba)
   
-  #Todo: Process a Makefile
+  #Todo: Add a Makefile
   
   tar = "#{dir}/#{params["filename"]}.tar.gz"
   
@@ -317,6 +317,10 @@ get '/editor.js' do
   coffee :editor
 end
 
+get '/code.js' do
+  coffee :code
+end
+
 get '/external.js' do
   coffee :external
 end
@@ -337,7 +341,7 @@ put "/code/:compiler" do |compiler|
   redirect "/code/#{compiler}/#{hash}"
 end
 
-get "/code/:compiler/:hash" do |compiler,hash|
+get "/code/:compiler/:hash" do |compiler, hash|
   @session = retrieve_session hash
   actions = []
   canned = ""
@@ -390,11 +394,11 @@ end
 get "/search" do
   cache_control :public, max_age:"600"
   limit = 20
-
+  
   solr = RSolr.connect url: "http://localhost:8983/solr"
   
   fq = params["indexes"].split(" ").map { |i| "repository:#{i}"} || []
-
+  
   results = solr.get "select", params: {
     q: params["query"], fq: fq.join(" OR "), fl: "filename", 
     start: params["offset"], rows: limit, sort: "filename asc"
@@ -404,15 +408,12 @@ get "/search" do
     raise Sinatra::NotFound
   end
 
-  # $sphinx.offset = params["offset"] if params["offset"]
-  # results = $sphinx.query(params["query"], params["indexes"])
-
   haml :search_results, layout: false, locals: {
     results: results, limit:limit
   }
 end
 
-get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
+get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag, folder, repo, path|
   cache_control :public, max_age:"600"
   @repos = [repo]
   match = $repos.select {|name,attr| name == repo}
@@ -426,7 +427,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
             match.empty?
           end
   
-  base = Dir.new [folder,repo].join("/")
+  base = Dir.new [folder, repo].join("/")
   
   if !( !error && File.exists?(@rel_path) \
         && base.contains?(@rel_path) )
@@ -434,7 +435,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   end
   
   return lxr_send_file @rel_path, false if dflag
-
+  
   return listing_of_directory(@rel_path) if File.directory? @rel_path
   
   if !path.match(/\.(dats|sats)/)

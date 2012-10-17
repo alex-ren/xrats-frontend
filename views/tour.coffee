@@ -31,9 +31,9 @@ setup = () ->
   , (ide)->
       s = $(slide)
       s.data("code", s.data("original"))
-      editor.code_mirror.setValue(s.data("code"))
-      editor.compile_flags = s.data("original_compile_flags")
-      editor.refresh()
+      ide.code_mirror.setValue(s.data("code"))
+      ide.compile_flags = s.data("original_compile_flags")
+      ide.refresh()
       save(slidenum)
   )
 

@@ -29,8 +29,8 @@ setup_handlers = {
     span = $("<span>")
     span.attr("class","form-label")
     span.html("Compiler Flags: ")
-    $("#ctl-workspace").append(span)
-    $("#ctl-workspace").append(i)
+    $("##{ide.id}-ctl-workspace").append(span)
+    $("##{ide.id}-ctl-workspace").append(i)
   run: (ide) ->
     i = $("<input>")
     i.attr("id","runtime-flags")
@@ -39,16 +39,16 @@ setup_handlers = {
     span = $("<span>")
     span.attr("class","form-label")
     span.html("Runtime Arguments: ")
-    $("#ctl-workspace").append(span)
-    $("#ctl-workspace").append(i)
+    $("##{ide.id}-ctl-workspace").append(span)
+    $("##{ide.id}-ctl-workspace").append(i)
   download: (ide) ->
     i = $('<input id="download-filename" type="text">')
     i.attr("value",ide.filename)
     span = $("<span>")
     span.attr("class","form-label")
     span.html("Filename: ")
-    $("#ctl-workspace").append(span)
-    $("#ctl-workspace").append(i)
+    $("##{ide.id}-ctl-workspace").append(span)
+    $("##{ide.id}-ctl-workspace").append(i)
     #Display options
     if archs[ide.compiler]
       span = $("<span>")
@@ -62,8 +62,8 @@ setup_handlers = {
         i.attr("value",ar.id)
         if ide.arch == ar.id
           i.attr("checked","true")
-        $("#ctl-workspace").append(i)
-        $("#ctl-workspace").append(ar.name)
+        $("##{ide.id}-ctl-workspace").append(i)
+        $("##{ide.id}-ctl-workspace").append(ar.name)
 }
 
 save_handlers = {
@@ -79,9 +79,9 @@ save_handlers = {
 
 update_handlers = {
   compile: (ide) ->
-    $("##{ide.id} #compile-flags").val(ide.compile_flags.join(" "))
+    $("##{ide.id}-ctl #compile-flags").val(ide.compile_flags.join(" "))
   run: (ide) ->
-    $("##{ide.id} #runtime-flags").val(ide.runtime_flags.join(" "))
+    $("##{ide.id}-ctl #runtime-flags").val(ide.runtime_flags.join(" "))
 }
 
 get_flags = (name) ->
@@ -222,15 +222,15 @@ load_ide_options = (id) ->
   return $("##{id} #ats-info").data()
 
 bind_switch_state = (ide) ->
-  $("##{ide.id} .switch-state").bind "click", (event) ->
+  $("##{ide.id}-ctl .switch-state").bind "click", (event) ->
     label = $(this).html()
     action = $(this).attr("data-action")
-    old_action = $("#ats-action").data("action")
-    $("##{ide.id} #ats-action").html(label)
-    $("##{ide.id} #ats-action").data("action",action)
+    old_action = $("##{ide.id}-ctl #ats-action").data("action")
+    $("##{ide.id}-ctl #ats-action").html(label)
+    $("##{ide.id}-ctl #ats-action").data("action",action)
     if save = save_handlers[old_action]
       save(ide)
-    $("##{ide.id} #ctl-workspace").empty()
+    $("##{ide.id}-ctl-workspace").empty()
     if init = setup_handlers[action]
       init(ide)
 
@@ -256,7 +256,7 @@ make_ats_ide = (id) ->
 
   bind_switch_state(ide)
 
-  $('#ats-action').bind "click", (event) ->
+  $("##{ide.id}-ctl #ats-action").bind "click", (event) ->
     action = $(this).data("action")
     if cmd = dispatcher[action]
       if save = save_handlers[action]
@@ -267,11 +267,11 @@ make_ats_ide = (id) ->
   ide.file_reader.onload = (evnt) ->
     ide.code_mirror.setValue(evnt.target.result)
 
-  $('#attached_file').bind "change", (event) ->
+  $('##{ide.id}-ctl #attached_file').bind "change", (event) ->
     handle_file(this, ide)
 
   ide.refresh = () ->
-    action = $("##{this.id} #ats-action").data("action")
+    action = $("##{this.id}-ctl #ats-action").data("action")
     if update = update_handlers[action]
       update(this)
 
@@ -289,5 +289,5 @@ window.ats_add_action = (ide, action, save, setup, dispatch) ->
   link.attr('data-action',action)
   link.text(action[0].toUpperCase()+action.slice(1))
   li = $("<li>").append(link)
-  $("##{ide.id} #action-dropdown").append(li)
+  $("##{ide.id}-ctl #action-dropdown").append(li)
   bind_switch_state(ide)

@@ -20,3 +20,32 @@
       %li
         %a{:href=>"/code/avrats"}
           AVR ATS
+
+%ul.nav.pull-right
+  %li
+    #ats-ide-ctl-workspace.navbar-form
+  %li
+    #ats-ide-ctl
+      .btn-group.pull-right
+        .btn#ats-action{"data-action"=>nil} Actions
+        .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
+          %span.caret
+        %input#attached_file{:type=>"file",:style=>"display:none;"}
+        %ul.dropdown-menu#action-dropdown
+          - actions.each do |action|
+            %li
+              %a.switch-state{"data-action"=> action}
+                = action.capitalize
+          %li.divider
+          %li
+            %a.switch-state{"data-action"=>"upload"}
+              Upload
+          - if download
+            %li
+              %a.switch-state{"data-action"=>"download"}
+                Download C
+          - if download_binary
+            %li
+              %a.switch-state{"data-action"=>"download_binary"}
+                = download_binary_label
+

@@ -1,11 +1,9 @@
 - @title = "Try ATS In The Browser"
-- @header = haml :code_header
-
-- @readycalls = [] if !@readycalls
-- @readycalls.push 'ats_ide("ats-ide")'
+- @header = haml :code_header, locals: locals
 
 - add_javascript "/javascripts/codemirror.js"
 - add_javascript "/javascripts/emacs.js"
 - add_javascript "/editor.js"
+- add_javascript "/code.js"
 
 = ats_editor locals
