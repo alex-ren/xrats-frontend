@@ -1,15 +1,15 @@
 %ul
-  - results[:matches].each do |match|
+  - results["response"]["docs"].each do |match|
     %li
-      %a{:href=>"/"+match[:attributes]["path"], :target=>"_blank"}
-        = match[:attributes]["path"]
-%p #{results[:total_found]} matching files found.
+      %a{:href=>"/"+match["filename"], :target=>"_blank"}
+        = match["filename"]
+%p #{results["response"]["numFound"]} matching files found.
 .pagination.pagination-centered
-  - pages = results[:total_found] / $sphinx.limit
-  - current_page = ($sphinx.offset.to_i / $sphinx.limit)
+  - pages = results["response"]["numFound"] / limit
+  - current_page = (results["response"]["start"] / limit)
   %ul
     - for i in 0..pages
       - active = (i == current_page) ? "active" : ""
       %li{:class=>active}
-        %a.paginate{"data-offset"=>i*$sphinx.limit}
+        %a.paginate{"data-offset"=>i*limit}
           = i+1

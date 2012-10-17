@@ -1,37 +1,29 @@
 require 'rubygems'
-require 'builder/xchar'
+require 'rsolr'
 
 path = ARGV[0]
 
+repo = ARGV[1]
+
+if !Dir.exists? ARGV[0]
+  puts "Usage: path/to/dir repo"
+  exit
+end
+
+solr = RSolr.connect url: "http://localhost:8983/solr"
+
 to_process = `find -L #{path} -regextype posix-extended -regex '.*\.(cats|dats|sats|hats)'`.split("\n") if path
 
-index_id = 1
-
-puts <<EOS
-<?xml version="1.0" encoding="utf-8"?>
-  <sphinx:docset>
-    <sphinx:schema>
-      <sphinx:attr name="path" type="string" default="/"/>
-      <sphinx:attr name="type" type="string" default="dats"/>
-      <sphinx:field name="content"/>
-    </sphinx:schema>
-EOS
-
 to_process.each do |filename|
+  puts filename
   begin
     contents = File.open(filename.chomp,"r").read
   rescue Errno::ENOENT
     next #skip it
   end
   type = (filename.match(/\.dats/)) ? "dats" : "sats"
-  puts <<EOS
-<sphinx:document id="#{index_id}">
-<content>#{Builder::XChar.encode(contents)}</content>
-<path>#{filename}</path>
-<type>#{type}</type>
-</sphinx:document>
-EOS
-  index_id += 1
+  
+  solr.add id: filename, filename: filename, code: contents, repository: repo
 end
 
-puts "</sphinx:docset>"
+solr.commit

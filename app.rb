@@ -2,16 +2,14 @@ require 'sinatra'
 
 require 'yaml'
 require 'json'
-require 'riddle'
 require 'open4'
 require 'fileutils'
 require 'securerandom'
+require 'rsolr'
 
 $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
-
-$sphinx = Riddle::Client.new
 
 class Dir
   #Check if a file is a child of some directory
@@ -390,12 +388,26 @@ end
 
 get "/search" do
   cache_control :public, max_age:"600"
+  limit = 20
 
-  $sphinx.offset = params["offset"] if params["offset"]
-  results = $sphinx.query(params["query"], params["indexes"])
+  solr = RSolr.connect url: "http://localhost:8983/solr"
+  
+  fq = params["indexes"].split(" ").map { |i| "repository:#{i}"} || []
+
+  results = solr.get "select", params: {
+    q: params["query"], fq: fq.join(" OR "), fl: "filename", 
+    start: params["offset"], rows: limit, sort: "filename asc"
+  }
+  
+  if results["responseHeader"]["status"] != 0
+    raise Sinatra::NotFound
+  end
+
+  # $sphinx.offset = params["offset"] if params["offset"]
+  # results = $sphinx.query(params["query"], params["indexes"])
 
   haml :search_results, layout: false, locals: {
-    results: results
+    results: results, limit:limit
   }
 end
 
@@ -421,7 +433,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag,folder,repo,path|
   end
   
   return lxr_send_file @rel_path, false if dflag
-  
+
   return listing_of_directory(@rel_path) if File.directory? @rel_path
   
   if !path.match(/\.(dats|sats)/)
