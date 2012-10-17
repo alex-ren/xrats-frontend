@@ -130,7 +130,7 @@ def xref_of_file path, base
     end
     res
   else
-    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{ENV["ATSHOME"]} -IATS #{file_folder} #{flag} #{path}`
+    `#{atsopt_path} --posmark_xref -IATS #{base} -IATS #{ENV["ATSHOME"]} -IATS #{file_folder} #{flags.join(" ")} #{path}`
   end
 end
 
