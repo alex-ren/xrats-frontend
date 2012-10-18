@@ -23,6 +23,8 @@ setup = () ->
 
   editor = ats_ide("ats-ide")
 
+
+
   ats_add_action(editor,"reset",
     (ide)->
       0
@@ -36,6 +38,16 @@ setup = () ->
       ide.refresh()
       save(slidenum)
   )
+
+  ats_add_action(editor,"fullscreen",
+    (ide)->
+      0
+  , (ide)->
+      0
+  , (ide)->
+      ide.set_fullscreen(true)
+  )
+
 
   index = $("#index").hide()
 
@@ -122,12 +134,12 @@ show = (i) ->
 
 hide_index = () ->
   $("#index").hide()
-  $("#ats-ide, #content").show()
+  $("#ats-ide, #content, #ats-ide-ctl, #ats-ide-ctl-workspace").show()
   $("#toggle-index").text("INDEX")
 
 show_index = () ->
   $("#index").show()
-  $("#ats-ide, #content").hide()
+  $("#ats-ide, #content, #ats-ide-ctl, #ats-ide-ctl-workspace").hide()
   $("#toggle-index").text("SLIDES")
 
 save = (page) ->

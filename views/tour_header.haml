@@ -4,32 +4,13 @@
   .icon-bar
 %a.brand{:href=>"/",:target=>"_blank"}
   ATS
-
-%ul.nav
-  %li.dropdown
-    %a.dropdown-toggle{:href=>"#","data-toggle"=>"dropdown"}
-      Versions
-      %b.caret
-    %ul.dropdown-menu
-      %li
-        %a{:href=>"/code/ats"}
-          ATS
-      %li
-        %a{:href=>"/code/patsopt"}
-          ATS2
-      %li
-        %a{:href=>"/code/avrats"}
-          AVR ATS
-
-%ul.nav.pull-right
-  %li
-    #ats-ide-ctl-workspace.navbar-form
+%ul.nav.pull-left
   %li
     #ats-ide-ctl
-      %input#attached_file{:type=>"file", :style=>"display:none;"}
+      %input#attached_file{type: "file", style: "display:none;"}
       .btn-group.pull-right
-        .btn#ats-action{"data-action"=>nil} Actions
-        .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
+        .btn#ats-action{"data-action"=> nil} Actions
+        .btn.dropdown-toggle{"data-toggle"=> "dropdown"}
           %span.caret
         %ul.dropdown-menu#action-dropdown
           - actions.each do |action|
@@ -38,7 +19,7 @@
                 = action.capitalize
           %li.divider
           %li
-            %a.switch-state{"data-action"=> "upload"}
+            %a.switch-state{"data-action"=>"upload"}
               Upload
           - if download
             %li
@@ -48,3 +29,9 @@
             %li
               %a.switch-state{"data-action"=>"download_binary"}
                 = download_binary_label
+  %li
+    #ats-ide-ctl-workspace.navbar-form{style: "margin-left:10px"}
+%ul.nav.pull-right
+  %li
+    %button.btn{id: "toggle-index"}
+      Index
