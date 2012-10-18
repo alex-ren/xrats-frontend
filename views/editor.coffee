@@ -310,6 +310,9 @@ make_ats_ide = (id) ->
     if update = update_handlers[action]
       update(this)
 
+  ide.set_fullscreen = (full) ->
+    set_fullscreen(ide.code_mirror, full)
+
   return ide
 
 # Export the ability to create an ats editor window.

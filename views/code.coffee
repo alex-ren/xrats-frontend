@@ -7,5 +7,5 @@ $(document).ready () ->
     , (ide) ->
       0
     , (ide) ->
-      ide.code_mirror.setSize("100%", "100%")
+      ide.set_fullscreen(true)
   )
