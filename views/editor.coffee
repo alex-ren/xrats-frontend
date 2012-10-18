@@ -1,3 +1,31 @@
+$(document).ready () ->
+  CodeMirror.connect(window, "resize", () ->
+    showing = $(".CodeMirror-fullscreen")[0]
+    if(!showing)
+      return
+    else
+      showing.CodeMirror.getScrollerElement().style.height = $(window).height() + "px"
+  )
+
+# Some CodeMirror Functionality
+set_fullscreen = (cm, full) ->
+  wrap = cm.getWrapperElement()
+  scroll = cm.getScrollerElement()
+
+  if (full)
+    wrap.className += " CodeMirror-fullscreen "
+    scroll.style.height = $(window).height() + "px"
+    document.documentElement.style.overflow = "hidden"
+  else
+    wrap.className = wrap.className.replace(" CodeMirror-fullscreen", "")
+    scroll.style.height = "500px"
+    document.documentElement.style.overflow = ""
+
+  cm.refresh()
+
+is_fullscreen = (cm) ->
+  return /\bCodeMirror-fullscreen\b/.test(cm.getWrapperElement().className)
+
 archs = {
   ats: [{id: "i386",  name: "32bit Linux"},
         {id: "x86_64",name: "64bit Linux"}]
@@ -13,7 +41,7 @@ dispatcher = {
   run: (ide) ->
     compile_code(ide,"run")
   upload: (ide) ->
-    $('#attached_file').click()
+    $("##{ide.id}-ctl #attached_file").click()
   download: (ide) ->
     download_code(ide)
   download_binary: (ide) ->
@@ -248,10 +276,17 @@ make_ats_ide = (id) ->
   ide.code_mirror = CodeMirror.fromTextArea(buf[0], {
             theme:"ambiance",
             lineNumbers:true,
-            keyMap:"emacs",
-            matchBrackets:true
+            matchBrackets:true,
+            extraKeys: {
+              "F11": (cm) ->
+                set_fullscreen(cm, !is_fullscreen(cm))
+            , "Esc": (cm) ->
+                if(is_fullscreen(cm))
+                  set_fullscreen(cm, false)
+            }
   })
-  $(ide.code_mirror.getScrollerElement()).height(500)
+
+  ide.code_mirror.getScrollerElement().style.height = 500+"px"
   ide.code_mirror.refresh()
 
   bind_switch_state(ide)
@@ -267,7 +302,7 @@ make_ats_ide = (id) ->
   ide.file_reader.onload = (evnt) ->
     ide.code_mirror.setValue(evnt.target.result)
 
-  $('##{ide.id}-ctl #attached_file').bind "change", (event) ->
+  $("##{ide.id}-ctl #attached_file").bind "change", (event) ->
     handle_file(this, ide)
 
   ide.refresh = () ->

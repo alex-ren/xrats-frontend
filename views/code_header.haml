@@ -26,11 +26,11 @@
     #ats-ide-ctl-workspace.navbar-form
   %li
     #ats-ide-ctl
+      %input#attached_file{:type=>"file",:style=>"display:none;"}
       .btn-group.pull-right
         .btn#ats-action{"data-action"=>nil} Actions
         .btn.dropdown-toggle{"data-toggle"=>"dropdown"}
           %span.caret
-        %input#attached_file{:type=>"file",:style=>"display:none;"}
         %ul.dropdown-menu#action-dropdown
           - actions.each do |action|
             %li
@@ -48,4 +48,3 @@
             %li
               %a.switch-state{"data-action"=>"download_binary"}
                 = download_binary_label
-
