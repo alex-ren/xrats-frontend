@@ -111,10 +111,10 @@ show = (i) ->
   s = $(slide).show()
 
   if s.hasClass("nocode")
-    $("#ats-ide").hide()
+    $("#ats-ide, #ats-ide-ctl, #ats-ide-ctl-workspace").hide()
     $("#content").attr("class","span12")
   else
-    $("#ats-ide").show()
+    $("#ats-ide, #ats-ide-ctl, #ats-ide-ctl-workspace").show()
     $("#ats-console").empty()
     $("#content").attr("class","span6")
     state = load(i) || s.data()
