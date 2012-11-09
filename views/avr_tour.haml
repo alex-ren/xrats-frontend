@@ -1,0 +1,14 @@
+- @title = "A Tour of ATS"
+- @header = haml :tour_header, locals: {actions: ["typecheck","compile","run"], download_binary: true, download_binary_label: "Download Hex", download: true}
+
+- add_javascript "/javascripts/codemirror.js"
+- add_javascript "/javascripts/emacs.js"
+- add_javascript "/editor.js"
+- add_javascript "/tour.js"
+
+.row
+  %ul.nav.nav-pills.nav-stacked#index
+  .span6#code
+    = ats_editor({compiler: "avrats", actions: ["typecheck","compile","run"], download_binary: false})
+  .span6#content
+    = erb :avr_slides

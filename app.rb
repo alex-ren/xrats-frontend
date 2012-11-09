@@ -391,6 +391,10 @@ get "/tour" do
   haml :tour
 end
 
+get "/avr-tour" do 
+  haml :avr_tour
+end
+
 get "/search" do
   cache_control :public, max_age:"600"
   limit = 20
@@ -441,7 +445,7 @@ get %r{^/(download/)?(ats|repos)/(.*?)/(.*)} do |dflag, folder, repo, path|
   if !path.match(/\.(dats|sats)/)
     return lxr_send_file @rel_path
   end
-  
+
   src = make_xref folder, repo, path
   haml :ats_source, locals:{ 
     source: src,
