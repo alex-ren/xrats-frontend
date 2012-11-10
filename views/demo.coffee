@@ -9,6 +9,21 @@ setup = () ->
       run(res, {time: 0.0})
     "json")
 
+#Maps floors to the number of passengers
+#requesting them.
+requests = {}
+
+#a container of div elements to reuse.
+passengers = []
+
+make_passenger = () ->
+  if passengers.length == 0
+    tmp = $("<div>")
+    tmp.attr("class", "stickman")
+    tmp
+  else
+    passengers.pop()
+
 render_event = (e, future) ->
   tag = e.tag
   switch tag
@@ -35,6 +50,30 @@ render_event = (e, future) ->
       () ->
         null
       )
+    when "service"
+      pass = make_passenger()
+      $("#floor-#{e.flr}").append(pass)
+    when "arrive"
+      $("#floor-#{e.flr} .stickman").animate({
+          "margin-left":"130px"
+      }, 1000,
+        () ->
+          $("#floor-#{e.flr} .stickman").remove()
+      )
+      if requests[e.flr] > 0
+        pass = make_passenger()
+        $("#floor-#{e.flr} .fr").append(pass)
+        $("#floor-#{e.flr} .fr .stickman").animate({
+          "margin-left":"130px"
+        }, 1000,
+        () ->
+          $("#floor-#{e.flr} .fr .stickman").remove()
+        )
+        requests[e.flr] = 0
+    when "request"
+      if !requests[e.flr]
+        requests[e.flr] = 0
+      requests[e.flr] += 1
 
 run = (events, curr) ->
   if events.length == 0

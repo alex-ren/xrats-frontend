@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+require 'json'
+
+
+js = File.open(ARGV[0],"r")
+
+arr = []
+
+js.each do |line|
+  arr.push(JSON.parse(line))
+end
+
+js.close
+
+js = File.open(ARGV[0],"w+")
+js.write arr.to_json
+js.close
+
+

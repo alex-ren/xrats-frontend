@@ -1,9 +1,31 @@
-@keyframes up-floor {
-    100% { transform: translateX(-50px); }
+@keyframes fly-up {
+    80% { margin-top: -100px; }
+    100% { opacity: 0.0; }
 }
 
-@-webkit-keyframes up-floor {
-    100% { -webkit-transform: translateX(-50px); }
+@keyframes fly-down {
+    80% { margin-top: 100px; }
+    100% { opacity: 0.0; }
+}
+
+@keyframes fly-right {
+    80% { transform: translateX(135px); }
+    100% { opacity: 0.0; }
+}
+
+@-webkit-keyframes fly-up {
+    80% { margin-top: -100px; }
+    100% { opacity: 0.0; }
+}
+
+@-webkit-keyframes fly-down {
+    80% { margin-top: 100px; }
+    100% { opacity: 0.0; }
+}
+
+@-webkit-keyframes fly-right {
+    80% { -webkit-transform: translateX(135px); }
+    100% { opacity: 0.0; }
 }
 
 #building {
@@ -26,6 +48,9 @@
 
 .floor {
     margin-top: 44px;
+}
+
+.floor-side {
     width: 40%;
     height: 5px;
     background-color: #000000;

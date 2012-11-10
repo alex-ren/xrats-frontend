@@ -6,9 +6,9 @@
 .row
   .span12
     #building
-      - 10.times do
-        .floor.fl
-          .stickman
-        .floor.fr
-        .cb
+      - 10.times do |i|
+        .floor{:id => "floor-#{10-i}"}
+          .floor-side.fl
+          .floor-side.fr
+          .cb
       #elevator
