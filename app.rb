@@ -391,8 +391,16 @@ get "/tour" do
   haml :tour
 end
 
-get "/avr-tour" do 
+get "/avr-tour" do
   haml :avr_tour
+end
+
+get "/demo.js" do 
+  coffee :demo
+end
+
+get "/demo" do
+  haml :demo
 end
 
 get "/search" do
@@ -407,7 +415,7 @@ get "/search" do
     q: params["query"], fq: fq.join(" OR "), fl: "filename", 
     start: params["offset"], rows: limit, sort: "filename asc"
   }
-  
+
   if results["responseHeader"]["status"] != 0
     raise Sinatra::NotFound
   end

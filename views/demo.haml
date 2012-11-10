@@ -1,0 +1,14 @@
+- @title = "ATS Elevator Demo"
+- @header = haml :default_header
+
+- add_javascript "/demo.js"
+
+.row
+  .span12
+    #building
+      - 10.times do
+        .floor.fl
+          .stickman
+        .floor.fr
+        .cb
+      #elevator

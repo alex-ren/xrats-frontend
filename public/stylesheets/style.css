@@ -1,3 +1,51 @@
+@keyframes up-floor {
+    100% { transform: translateX(-50px); }
+}
+
+@-webkit-keyframes up-floor {
+    100% { -webkit-transform: translateX(-50px); }
+}
+
+#building {
+    margin: 0 auto;
+    width: 300px;
+    height: 500px;
+}
+
+.fl {
+    float: left;
+}
+
+.fr {
+    float: right;
+}
+
+.cb {
+    clear: both;
+}
+
+.floor {
+    margin-top: 44px;
+    width: 40%;
+    height: 5px;
+    background-color: #000000;
+}
+
+.stickman {
+    height: 40px;
+    width: 17px;
+    background-image:url("/data/stick.png");
+    margin-top: -40px;
+}
+
+#elevator {
+    margin: 500px auto 0px 130px;
+    width:40px;
+    height:50px;
+    background-color: #000000;
+    position: absolute;
+}
+
 body {
     padding-top:60px;
     font: 13px Helvetica,arial,freesans,clean,sans-serif;
