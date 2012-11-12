@@ -1,12 +1,110 @@
 $(document).ready () ->
     setup()
 
+state = {
+  curr: {time: 0.0}
+  events: []
+  start: 0.0
+  elevator: {
+    floor: 1
+    dest: -1
+    arrival: 0.0
+    #pos - a point on the y axis
+    # Draw the elevator with its center
+    # on this point.
+    paint : (pos) ->
+      ctx = context()
+      ctx.fillStyle = "rgb(0, 0, 0)"
+      ctx.fillRect(132, pos-25, 40, 50)
+  }
+}
+
+context = () ->
+  cs = document.getElementById("simulator")
+  return cs.getContext("2d")
+
+clear = () ->
+  ctx = context()
+  ctx.clearRect(0, 0, 300, 500)
+
+draw_building = () ->
+  ctx = context()
+  for i in [1..10]
+    ctx.fillStyle = "rgb(0, 0, 0)"
+    ctx.fillRect(0, i*45, 130, 5)
+    ctx.fillRect(175, i*45, 130, 5)
+
+point_of_floor = (floor) ->
+    return ((10 - floor) * 45) + 25
+
+render_elevator = (time) ->
+  #Elevator is moving
+  if state.elevator.dest > 0
+    el = state.elevator
+    #get the current position
+    #1 floor/second 45 pixels/floor = 45 pixels/second
+    dist = Math.abs(el.dest - el.floor)
+    tta = (el.arrival - time)/1000
+    distance_covered = 45*(dist - tta)
+    dest = point_of_floor(el.dest)
+    distance_to_go = (45*dist - distance_covered)
+    cntr =
+      if el.dest > el.floor
+        dest + distance_to_go
+      else
+        dest - distance_to_go
+    state.elevator.paint(cntr)
+  else
+    pt = point_of_floor(state.elevator.floor)
+    state.elevator.paint(pt)
+
+render_scene = (time) ->
+  clear()
+  draw_building()
+  render_elevator(time)
+
+run = (time) ->
+
+  if state.events.length == 0
+    return 0
+
+  time = time - state.start
+
+  #Get next event
+  if time >= state.events[0].time
+    next = state.events.shift()
+    state.curr = next
+
+    switch state.curr.tag
+      when "arrive"
+        state.elevator.dest = -1
+        state.elevator.floor = state.curr.flr
+      when "move"
+        find_arrive = (events) ->
+          for i,e of events
+            if e.tag == "arrive"
+              return e
+          return {flr: state.elevator.floor}
+        nxt = find_arrive(state.events)
+        console.log(nxt.flr)
+        state.elevator.dest = nxt.flr
+        state.elevator.arrival = nxt.time
+  
+  render_scene(time)
+  window.requestAnimationFrame(run)
+
 setup = () ->
+  requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame \
+                          || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+  window.requestAnimationFrame = requestAnimationFrame
   #Get the data
   $.get(
     "/data/trial1.json"
     (res) ->
-      run(res, {time: 0.0})
+      start = new Date()
+      state.events = res
+      state.start = start.getTime()
+      window.requestAnimationFrame(run)
     "json")
 
 #Maps floors to the number of passengers
@@ -30,12 +128,7 @@ render_event = (e, future) ->
     when "move"
       curr = e.from
       diff = 0
-      find_arrive = (events) ->
-        for i,e of events
-          if e.tag == "arrive"
-            return e
-        return {flr: curr}
-      nxt = find_arrive(future)
+      nxt = {}
       diff = nxt.flr - e.from
       dist = (diff * 50)
       time = Math.abs(diff * 1000) #one second per floor
@@ -75,13 +168,3 @@ render_event = (e, future) ->
         requests[e.flr] = 0
       requests[e.flr] += 1
 
-run = (events, curr) ->
-  if events.length == 0
-    console.log "Done"
-    return 0
-  next = events.shift()
-  dtime = next.time - curr.time
-  setTimeout( () ->
-    render_event(next, events)
-    run(events, next)
-  , dtime)
