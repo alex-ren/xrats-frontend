@@ -76,9 +76,9 @@ render_passengers = () ->
   ctx = context()
   for floor,folks of state.passengers
     i = 0
-    for id, dir of folks
+    for id, info of folks
       ctx.drawImage(man, 30*i, ((10-floor)*45)+5)
-      arrow = if dir == 'u' then up else down
+      arrow = if info.dir == 'u' then up else down
       ctx.drawImage(arrow, (30*i)+17, ((10-floor)*45)+15)
       i += 1
 
@@ -122,7 +122,7 @@ run = (time) ->
       when "request"
         curr = state.curr
         delete state.passengers[state.elevator.floor][curr.id]
-  
+
   render_scene(time)
   window.requestAnimationFrame(run)
 
