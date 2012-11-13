@@ -405,6 +405,7 @@ get "/demo" do
             {id: "trial2", class:"trial", text: "Trial 2"},
             {id: "trial3", class:"trial", text: "Trial 3"},
             {id: "trial4", class:"trial", text: "Trial 4"},
+            {id: "trial5", class:"trial", text: "Trial 5"},
            ]
   }
 end
