@@ -123,7 +123,6 @@ run = (time) ->
               return e
           return {flr: state.elevator.floor}
         nxt = find_arrive(state.events)
-        console.log(nxt.flr)
         state.elevator.dest = nxt.flr
         state.elevator.arrival = nxt.time
       when "service"
@@ -159,12 +158,16 @@ setup = () ->
   state.up.src = "/data/up.png"
   state.down.src = "/data/down.png"
 
-  #Get the data
-  $.get(
-    "/data/trial1.json"
-    (res) ->
-      start = new Date()
-      state.events = res
-      state.start = start.getTime()
-      window.requestAnimationFrame(run)
-    "json")
+  $(".trial").bind "click", () ->
+    $.get(
+      "/data/#{$(this).attr("id")}.json"
+      (res) ->
+        start = new Date()
+        state.events = res
+        state.start = start.getTime()
+        state.elevator.floor = 1
+        state.elevator.destination = 0
+        state.passengers = {}
+        state.leaving = {}
+        window.requestAnimationFrame(run)
+      "json")

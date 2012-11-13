@@ -52,5 +52,5 @@
     %ul.nav.pull-right
       - links.each do |l|
         %li
-          %button.btn{:id=>l[:id]}
+          %button.btn{:id=>l[:id], :class=>l[:class]}
             = l[:text]

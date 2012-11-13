@@ -1,8 +1,10 @@
 - @title = "ATS Elevator Demo"
-- @header = haml :default_header
+- @header = haml :default_header, locals: locals
 
 - add_javascript "/demo.js"
 
 .row
+  .span12
+    See the simulator in action by clicking on one of the trials above.
   .span12
     %canvas#simulator{:width => "300", :height => "500"}

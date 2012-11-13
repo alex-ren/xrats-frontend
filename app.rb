@@ -400,7 +400,11 @@ get "/demo.js" do
 end
 
 get "/demo" do
-  haml :demo
+  haml :demo, locals: {
+    links: [{id: "trial1", class:"trial", text: "Trial 1"},
+            {id: "trial2", class:"trial", text: "Trial 2"}
+           ]
+  }
 end
 
 get "/search" do
