@@ -20,7 +20,10 @@ state = {
   #Passengers waiting for service
   passengers: {}
   #Passengers leaving
-  leaving: []
+  leaving: {}
+  passenger: new Image()
+  up: new Image()
+  down: new Image()
 }
 
 context = () ->
@@ -66,31 +69,42 @@ render_elevator = (time) ->
     pt = point_of_floor(state.elevator.floor)
     state.elevator.paint(pt)
 
-render_passengers = () ->
-  man = new Image()
-  man.src = "data/stick.png"
-  down = new Image()
-  down.src = "data/down.png"
-  up = new Image()
-  up.src = "data/up.png"
+draw_passenger = (x, y, direction) ->
+  ctx = context()
+  ctx.drawImage(state.passenger, x, y)
+  if direction
+    arrow = if direction == 'u' then state.up else state.down
+    ctx.drawImage(arrow, x+17, y+15)
+
+render_passengers = (time) ->
   ctx = context()
   for floor,folks of state.passengers
     i = 0
     for id, info of folks
-      ctx.drawImage(man, 30*i, ((10-floor)*45)+5)
-      arrow = if info.dir == 'u' then up else down
-      ctx.drawImage(arrow, (30*i)+17, ((10-floor)*45)+15)
+      draw_passenger(30*i, ((10-floor)*45) + 5, info.dir)
       i += 1
+
+  #Draw Passengers leaving
+  for id, info of state.leaving
+    t = (time - info.left)/1000.0
+    if t > 1
+      delete state.leaving[id]
+    #130 pixels/second
+    pos = 130*t
+    draw_passenger(175+pos, ((10-info.floor)*45) + 5)
+
 
 render_scene = (time) ->
   clear()
   draw_building()
   render_elevator(time)
-  render_passengers()
+  render_passengers(time)
 
 run = (time) ->
   if state.events.length == 0
-    return 0
+    #Just keep redrawing the buffer, animations
+    #may need to finish after events stop.
+    state.events.push({time: Infinity})
 
   time = time - state.start
 
@@ -122,6 +136,12 @@ run = (time) ->
       when "request"
         curr = state.curr
         delete state.passengers[state.elevator.floor][curr.id]
+      when "exit"
+        curr = state.curr
+        state.leaving[curr.id] = {
+          left: time
+          floor: curr.flr
+        }
 
   render_scene(time)
   window.requestAnimationFrame(run)
@@ -133,6 +153,11 @@ setup = () ->
     || window.msRequestAnimationFrame
 
   window.requestAnimationFrame = requestAnimationFrame
+
+  #Setup the sprites used.
+  state.passenger.src = "/data/stick.png"
+  state.up.src = "/data/up.png"
+  state.down.src = "/data/down.png"
 
   #Get the data
   $.get(
