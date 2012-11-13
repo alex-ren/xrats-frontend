@@ -29,6 +29,7 @@ clear = () ->
 
 draw_building = () ->
   ctx = context()
+  #Floors
   for i in [1..10]
     ctx.fillStyle = "rgb(0, 0, 0)"
     ctx.fillRect(0, i*45, 130, 5)
@@ -40,14 +41,17 @@ point_of_floor = (floor) ->
 render_elevator = (time) ->
   #Elevator is moving
   if state.elevator.dest > 0
-    el = state.elevator
-    #get the current position
+    #find the elevator's current position along its path
     #1 floor/second 45 pixels/floor = 45 pixels/second
-    dist = Math.abs(el.dest - el.floor)
-    tta = (el.arrival - time)/1000
-    distance_covered = 45*(dist - tta)
+    el = state.elevator
+    tta = (state.elevator.arrival - time)/1000
+    diff = Math.abs(el.dest - el.floor)
+    distance_to_go =
+      if !diff || tta < 0
+        0
+      else
+        tta*45
     dest = point_of_floor(el.dest)
-    distance_to_go = (45*dist - distance_covered)
     cntr =
       if el.dest > el.floor
         dest + distance_to_go
@@ -64,7 +68,6 @@ render_scene = (time) ->
   render_elevator(time)
 
 run = (time) ->
-
   if state.events.length == 0
     return 0
 
@@ -74,7 +77,7 @@ run = (time) ->
   if time >= state.events[0].time
     next = state.events.shift()
     state.curr = next
-
+    state.curr.flr = parseInt(state.curr.flr)
     switch state.curr.tag
       when "arrive"
         state.elevator.dest = -1
@@ -94,9 +97,13 @@ run = (time) ->
   window.requestAnimationFrame(run)
 
 setup = () ->
-  requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame \
-                          || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
+  requestAnimationFrame = window.requestAnimationFrame \
+    || window.mozRequestAnimationFrame                 \
+    || window.webkitRequestAnimationFrame              \
+    || window.msRequestAnimationFrame
+
   window.requestAnimationFrame = requestAnimationFrame
+
   #Get the data
   $.get(
     "/data/trial1.json"
@@ -107,64 +114,9 @@ setup = () ->
       window.requestAnimationFrame(run)
     "json")
 
-#Maps floors to the number of passengers
+#Map floors to the number of passengers
 #requesting them.
 requests = {}
 
 #a container of div elements to reuse.
 passengers = []
-
-make_passenger = () ->
-  if passengers.length == 0
-    tmp = $("<div>")
-    tmp.attr("class", "stickman")
-    tmp
-  else
-    passengers.pop()
-
-render_event = (e, future) ->
-  tag = e.tag
-  switch tag
-    when "move"
-      curr = e.from
-      diff = 0
-      nxt = {}
-      diff = nxt.flr - e.from
-      dist = (diff * 50)
-      time = Math.abs(diff * 1000) #one second per floor
-      cmd =
-        if dist > 0
-          "-=#{Math.abs(dist)}"
-        else
-          "+=#{Math.abs(dist)}"
-      $("#elevator").animate({
-         top:cmd
-      }, time,
-      () ->
-        null
-      )
-    when "service"
-      pass = make_passenger()
-      $("#floor-#{e.flr}").append(pass)
-    when "arrive"
-      $("#floor-#{e.flr} .stickman").animate({
-          "margin-left":"130px"
-      }, 1000,
-        () ->
-          $("#floor-#{e.flr} .stickman").remove()
-      )
-      if requests[e.flr] > 0
-        pass = make_passenger()
-        $("#floor-#{e.flr} .fr").append(pass)
-        $("#floor-#{e.flr} .fr .stickman").animate({
-          "margin-left":"130px"
-        }, 1000,
-        () ->
-          $("#floor-#{e.flr} .fr .stickman").remove()
-        )
-        requests[e.flr] = 0
-    when "request"
-      if !requests[e.flr]
-        requests[e.flr] = 0
-      requests[e.flr] += 1
-
