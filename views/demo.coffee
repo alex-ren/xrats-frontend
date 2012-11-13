@@ -17,6 +17,10 @@ state = {
       ctx.fillStyle = "rgb(0, 0, 0)"
       ctx.fillRect(132, pos-25, 40, 50)
   }
+  #Passengers waiting for service
+  passengers: {}
+  #Passengers leaving
+  leaving: []
 }
 
 context = () ->
@@ -62,10 +66,27 @@ render_elevator = (time) ->
     pt = point_of_floor(state.elevator.floor)
     state.elevator.paint(pt)
 
+render_passengers = () ->
+  man = new Image()
+  man.src = "data/stick.png"
+  down = new Image()
+  down.src = "data/down.png"
+  up = new Image()
+  up.src = "data/up.png"
+  ctx = context()
+  for floor,folks of state.passengers
+    i = 0
+    for id, dir of folks
+      ctx.drawImage(man, 30*i, ((10-floor)*45)+5)
+      arrow = if dir == 'u' then up else down
+      ctx.drawImage(arrow, (30*i)+17, ((10-floor)*45)+15)
+      i += 1
+
 render_scene = (time) ->
   clear()
   draw_building()
   render_elevator(time)
+  render_passengers()
 
 run = (time) ->
   if state.events.length == 0
@@ -92,6 +113,16 @@ run = (time) ->
         console.log(nxt.flr)
         state.elevator.dest = nxt.flr
         state.elevator.arrival = nxt.time
+      when "service"
+        curr = state.curr
+        if !state.passengers[curr.flr]
+          state.passengers[curr.flr] = {}
+        state.passengers[curr.flr][curr.id] = {
+          dir: curr.dir
+        }
+      when "request"
+        curr = state.curr
+        delete state.passengers[state.elevator.floor][curr.id]
   
   render_scene(time)
   window.requestAnimationFrame(run)
@@ -113,10 +144,3 @@ setup = () ->
       state.start = start.getTime()
       window.requestAnimationFrame(run)
     "json")
-
-#Map floors to the number of passengers
-#requesting them.
-requests = {}
-
-#a container of div elements to reuse.
-passengers = []
