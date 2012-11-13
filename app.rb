@@ -402,7 +402,8 @@ end
 get "/demo" do
   haml :demo, locals: {
     links: [{id: "trial1", class:"trial", text: "Trial 1"},
-            {id: "trial2", class:"trial", text: "Trial 2"}
+            {id: "trial2", class:"trial", text: "Trial 2"},
+            {id: "trial3", class:"trial", text: "Trial 3"}
            ]
   }
 end
