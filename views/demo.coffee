@@ -98,7 +98,6 @@ run = (time) ->
   if time >= state.events[0].time
     next = state.events.shift()
     state.curr = next
-    state.curr.flr = parseInt(state.curr.flr)
     switch state.curr.tag
       when "arrive"
         state.elevator.dest = -1
