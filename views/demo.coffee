@@ -51,13 +51,13 @@ render_elevator = (time) ->
     #find the elevator's current position along its path
     #1 floor/second 45 pixels/floor = 45 pixels/second
     el = state.elevator
-    tta = (state.elevator.arrival - time)/1000
+    tta = (state.elevator.arrival - time)/1000.0
     diff = Math.abs(el.dest - el.floor)
     distance_to_go =
       if !diff || tta < 0
-        0
+        0.0
       else
-        tta*45
+        tta*45.0
     dest = point_of_floor(el.dest)
     cntr =
       if el.dest > el.floor
@@ -91,7 +91,7 @@ render_passengers = (time) ->
       delete state.leaving[id]
     #130 pixels/second
     pos = 130*t
-    draw_passenger(175+pos, ((10-info.floor)*45) + 5)
+    draw_passenger(175.0+pos, ((10-info.floor)*45.0) + 5.0)
 
 
 render_scene = (time) ->

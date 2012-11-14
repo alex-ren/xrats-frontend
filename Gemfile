@@ -12,3 +12,6 @@ gem 'coffee-script'
 gem 'therubyracer', :require => "v8"
 gem 'open4'
 gem 'rsolr'
+
+gem 'sequel'
+gem 'sqlite3'
