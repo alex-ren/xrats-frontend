@@ -160,7 +160,7 @@ setup = () ->
 
   $(".trial").bind "click", () ->
     $.get(
-      "/data/#{$(this).attr("id")}.json"
+      "/trial/#{$(this).attr("id")}.json"
       (res) ->
         start = new Date()
         state.events = res
