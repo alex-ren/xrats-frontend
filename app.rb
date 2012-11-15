@@ -9,8 +9,6 @@ require 'rsolr'
 
 require 'sequel'
 
-require 'faraday'
-
 $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
