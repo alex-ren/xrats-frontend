@@ -9,12 +9,12 @@ end
 
 payload = ""
 
-File.open(ARV[2], "r") do |f|
+File.open(ARGV[2], "r") do |f|
   payload = f.read()
 end
 
 resp = Faraday.post "http://xrats.illtyped.com/trial", {
   secret: ARGV[0], name: ARGV[1], events: payload
 }
-
+puts resp.status
 puts resp.body
