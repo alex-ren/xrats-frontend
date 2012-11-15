@@ -48,6 +48,10 @@ CMD
 rm -rf #{release_path}/data &&
 ln -nfs #{production_shared_path}/data #{release_path}/data
 CMD
+    run <<CMD
+rm -rf #{release_path}/db &&
+ln -nfs #{production_shared_path}/db #{release_path}/db
+CMD
     release_name = File.basename(release_path)
     sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
   end

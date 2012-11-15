@@ -7,6 +7,8 @@ require 'fileutils'
 require 'securerandom'
 require 'rsolr'
 
+require 'sequel'
+
 $app_config = YAML.load_file("config/app.yml")[ENV['RACK_ENV']]
 $repos = YAML.load_file("config/repos.yml")["repos"]
 $ats = YAML.load_file("config/ats.yml")["versions"]
@@ -399,15 +401,61 @@ get "/demo.js" do
   coffee :demo
 end
 
+def db_connect()
+  db = Sequel.connect("sqlite://db/experiments.db")
+  yield db
+end
+
+post "/trial" do
+  content_type :json
+  
+  if params["secret"] != $app_config[:secret]
+    raise Sinatra::NotFound
+  end
+  db_connect() { |db|
+    trials = db[:trials]
+    trials.insert(name: params["name"], events: params["events"])
+  }
+  {status: 0, response: "ok!"}.to_json()
+end
+
+get "/trial/:id.json" do |id|
+  content_type :json
+
+  item = nil
+  db_connect() { |db|
+    trials = db[:trials]
+    item = trials.where(id: id).first
+    if !item
+      raise Sinatra::NotFound
+    end
+  }
+  item[:events]
+end
+
+delete "/trial/:id" do |id|
+  content_type :json
+  
+  if params["secret"] != $app_config[:secret]
+    raise Sinatra::NotFound
+  end
+
+  db_connect() { |db|
+    db[:trials].where(id: id).delete()
+  }
+
+  {status: 0, response: "ok!"}.to_json()
+end
+
 get "/demo" do
+  links = []
+  db_connect() { |db|
+    links = db[:trials].map([:id, :name]).map { |t|
+      {id: t[0], class:"trial", text: t[1]}
+    }
+  }
   haml :demo, locals: {
-    links: [{id: "trial1", class:"trial", text: "Trial 1"},
-            {id: "trial2", class:"trial", text: "Trial 2"},
-            {id: "trial3", class:"trial", text: "Trial 3"},
-            {id: "trial4", class:"trial", text: "Trial 4"},
-            {id: "trial5", class:"trial", text: "Trial 5"},
-            {id: "trial6", class:"trial", text: "Trial 6"},
-           ]
+    links: links
   }
 end
 
