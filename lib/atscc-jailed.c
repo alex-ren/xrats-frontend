@@ -150,7 +150,7 @@ void drop_privilege() {
   
   //The 2nd and 3rd entry are uid and gid.
   FILE *nobody = popen("/usr/bin/getent passwd nobody", "r");
-  
+
   if(!nobody) {
     perror("Could not run getent.");
     exit(1);
@@ -272,7 +272,6 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_sigaltstack:
   case SYS_kill:
   case SYS_futex:
-  case SYS_ipc:
     kill_child("IPC is not permitted.", child);
     break;
   case SYS_ioctl:
@@ -295,8 +294,11 @@ inline void verify_syscall(int child, unsigned long call) {
   case SYS_chdir:
     kill_child("SYS_chdir is not permitted.", child);
     break;
-  case SYS_socketcall:
-    kill_child("SYS_socketcall is not permitted", child);
+  case SYS_socket:
+  case SYS_bind:
+  case SYS_connect:
+  case SYS_listen:
+    kill_child("Sockets are not permitted", child);
     break;
   case SYS_execve:
     catch_exec(child);
@@ -316,7 +318,7 @@ void patrol_syscalls(int child) {
       break;
     }
     ptrace(PTRACE_GETREGS,child,0,&uregs);
-    verify_syscall(child,uregs.orig_eax);
+    verify_syscall(child,uregs.orig_rax);
     ptrace(PTRACE_SYSCALL,child,0,0);
   }
 }
