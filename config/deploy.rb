@@ -10,7 +10,7 @@ set :ssh_options, { :forward_agent => true }
 
 default_run_options[:pty] = true
 
-set :application, "lxrats"
+set :application, "xrats"
 set :scm_username, "git"
 set :repository, "#{scm_username}@github.com:wdblair/xrats-frontend.git"
 
@@ -18,12 +18,12 @@ set :scm, :git
 
 set :deploy_via, :remote_cache
 
-set :user, "ats"
-server "xrats.illtyped.com", :web,:app,:db,:primary => true
+set :user, "wdblair"
+server "xats.bu.edu", :web,:app,:db,:primary => true
 
 set :use_sudo, false
 
-set :deploy_to, "/home/ats/lxrats"
+set :deploy_to, "/var/ats/xrats"
 set :production_config_path, "#{deploy_to}/config_files"
 set :production_repos_path, "#{deploy_to}/code"
 set :production_shared_path, "#{deploy_to}/shared"
@@ -34,7 +34,6 @@ namespace :deploy do
   task :copy_application_config do 
     run "cp #{production_config_path}/repos.yml #{release_path}/config/repos.yml"
     run "cp #{production_config_path}/ats.yml #{release_path}/config/ats.yml"
-    run "cp #{production_config_path}/sphinx.conf #{release_path}/config/sphinx.conf"
     run "cp #{production_config_path}/app.yml #{release_path}/config/app.yml"
     run <<CMD
 rm -rf #{release_path}/repos &&
@@ -52,8 +51,14 @@ CMD
 rm -rf #{release_path}/db &&
 ln -nfs #{production_shared_path}/db #{release_path}/db
 CMD
-    release_name = File.basename(release_path)
-    sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
+    run <<CMD
+make -f 
+CMD
+    #release_name = File.basename(release_path)
+    #sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
+    run "make -f lib/Makefile"
+    sudo "chown root:root lib/atscc-jailed"
+    sudo "chmod u+s lib/atscc-jailed"
   end
   
   after "deploy:update_code", "deploy:copy_application_config"
@@ -65,12 +70,12 @@ namespace :deploy do
   task :restart, :except => { :no_release => true } do
     sudo "/etc/init.d/unicorn restart"
   end
-
+  
   desc "Start unicorn"
   task :start, :except => { :no_release => true } do
     sudo "/etc/init.d/unicorn start"
   end
-
+  
   desc "Stop unicorn"
   task :stop, :except => { :no_release => true } do
     sudo "/etc/init.d/unicorn stop"

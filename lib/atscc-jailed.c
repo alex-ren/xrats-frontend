@@ -574,12 +574,12 @@ int main () {
   if(!json_is_object(config))
     die("error, the config json must be an object.");
   
-  if( chdir("/opt/atscc-jail") < 0) {
+  if( chdir("/var/ats/atscc-jail") < 0) {
     perror("Couldn't cd to jail.");
     exit(1);
   }
 
-  if (chroot("/opt/atscc-jail") < 0) {
+  if (chroot("/var/ats/atscc-jail") < 0) {
     perror("Couldn't enter jail");
     exit(1);
   }
