@@ -56,7 +56,7 @@ make -f
 CMD
     #release_name = File.basename(release_path)
     #sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
-    run "make -f lib/Makefile"
+    run "make -f ./lib/Makefile"
     sudo "chown root:root lib/atscc-jailed"
     sudo "chmod u+s lib/atscc-jailed"
   end
