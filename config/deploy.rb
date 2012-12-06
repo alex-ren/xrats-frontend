@@ -51,14 +51,11 @@ CMD
 rm -rf #{release_path}/db &&
 ln -nfs #{production_shared_path}/db #{release_path}/db
 CMD
-    run <<CMD
-make -f 
-CMD
     #release_name = File.basename(release_path)
     #sudo "#{production_shared_path}/setup-atscc-jailed #{release_name}"
-    run "make -f ./lib/Makefile"
-    sudo "chown root:root lib/atscc-jailed"
-    sudo "chmod u+s lib/atscc-jailed"
+    run "make -C #{release_path}/lib"
+    sudo "chown root:root #{release_path}/lib/atscc-jailed"
+    sudo "chmod u+s #{release_path}/lib/atscc-jailed"
   end
   
   after "deploy:update_code", "deploy:copy_application_config"
