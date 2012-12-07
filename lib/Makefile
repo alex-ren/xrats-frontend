@@ -1,4 +1,4 @@
 all: atscc-jailed
 
 atscc-jailed: atscc-jailed.c
-	gcc -g -o $@ $< -ljansson -lm
+	gcc -g -L /usr/local/lib -o $@ $< -ljansson -lm
