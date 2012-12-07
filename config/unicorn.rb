@@ -1,4 +1,4 @@
-app_name = "lxrats"
+app_name = "xrats"
 user_name = "william"
 
 preload_app false
@@ -7,7 +7,7 @@ timeout 30
 listen "/tmp/#{app_name}.sock", :backlog => 64
 
 user_name = "ats"
-app_root = "/home/#{user_name}/#{app_name}"
+app_root = "/var/#{user_name}/#{app_name}"
 shared_path = "#{app_root}/shared"
 pid_path = "#{shared_path}/pids"
   
