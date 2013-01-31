@@ -3,6 +3,7 @@ CodeMirror.defineMode('ats', function() {
   var words = {
     'true': 'atom',
     'false': 'atom',
+    'assume': 'keyword',
     'let': 'keyword',
     'in': 'keyword',
     'of': 'keyword',
@@ -50,7 +51,7 @@ CodeMirror.defineMode('ats', function() {
     'print': 'builtin',
     'print_newline': 'builtin'
   };
-  
+
   function tokenBase(stream, state) {
     var ch = stream.next();
 
@@ -65,14 +66,18 @@ CodeMirror.defineMode('ats', function() {
         return state.tokenize(stream, state);
       }
     }
-    if (ch === '~') {
-      stream.eatWhile(/\w/);
-      return 'variable-2';
-    }
     if (ch === '`') {
       stream.eatWhile(/\w/);
       return 'quote';
     }
+    
+    /*
+    if (ch === '{') {
+        state.tokenize = tokenStatics;
+        return state.tokenize(stream, state);
+    }
+    */
+
     if (/\d/.test(ch)) {
       stream.eatWhile(/[\d]/);
       if (stream.eat('.')) {
@@ -80,11 +85,13 @@ CodeMirror.defineMode('ats', function() {
       }
       return 'number';
     }
-    if ( /[+\-*&%=<>!?|]/.test(ch)) {
+
+    if ( /[~+\-*&%=<>!?|]/.test(ch)) {
       return 'operator';
     }
     stream.eatWhile(/\w/);
     var cur = stream.current();
+    
     return words[cur] || 'variable';
   }
 
@@ -114,6 +121,22 @@ CodeMirror.defineMode('ats', function() {
       state.tokenize = tokenBase;
     }
     return 'comment';
+  }
+  
+  function tokenStatics(stream, state) {
+      var next, end;
+      
+      while( (next = stream.next() ) != null) {
+          if(next === '}') {
+              end = true;
+              break;
+          }
+      }
+      
+      if (end) {
+          state.tokenize = tokenBase;
+      }
+      return 'statics';
   }
 
   return {
