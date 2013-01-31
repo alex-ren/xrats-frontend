@@ -274,6 +274,7 @@ make_ats_ide = (id) ->
     return
 
   ide.code_mirror = CodeMirror.fromTextArea(buf[0], {
+            mode: "ats",
             theme:"ambiance",
             lineNumbers:true,
             matchBrackets:true,
