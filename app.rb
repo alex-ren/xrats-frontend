@@ -454,6 +454,7 @@ get "/demo" do
       {id: t[0], class:"trial", text: t[1]}
     }
   }
+  links.push({class: "upload", text: "Upload JSON"})
   haml :demo, locals: {
     links: links
   }

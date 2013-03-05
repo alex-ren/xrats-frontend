@@ -1,4 +1,9 @@
+#Chrome's requestAnimationFrame is acting
+# straing
+chrome_start = null
+
 $(document).ready () ->
+    chrome_start = (new Date()).getTime()
     setup()
 
 state = {
@@ -106,7 +111,11 @@ run = (time) ->
     #may need to finish after events stop.
     state.events.push({time: Infinity})
 
-  time = time - state.start
+  #Firefox and Chrome give a different timestamp...
+  if window.mozAnimationStartTime
+    time = time - state.start
+  else
+    time = time - (state.start - chrome_start)
 
   #Get next event
   if time >= state.events[0].time
@@ -145,6 +154,28 @@ run = (time) ->
   render_scene(time)
   window.requestAnimationFrame(run)
 
+run_json = (res) ->
+  start = new Date()
+  state.events = res
+  state.start = start.getTime()
+  state.elevator.floor = 1
+  state.elevator.destination = 0
+  state.passengers = {}
+  state.leaving = {}
+  window.requestAnimationFrame(run)
+
+trial_reader = new FileReader()
+trial_reader.onload = (evnt) ->
+    res = JSON.parse(evnt.target.result)
+    run_json(res)
+
+run_file = (input) ->
+  if input.files.length == 0
+    console.log("shit")
+    return
+  file = input.files[0]
+  trial_reader.readAsText(file)
+
 setup = () ->
   requestAnimationFrame = window.requestAnimationFrame \
     || window.mozRequestAnimationFrame                 \
@@ -158,16 +189,15 @@ setup = () ->
   state.up.src = "/data/up.png"
   state.down.src = "/data/down.png"
 
+  $(".upload").on "click", ()->
+    $("#trial_file").click()
+
+  $("#trial_file").bind "change", (event) ->
+    run_file(this)
+
   $(".trial").bind "click", () ->
     $.get(
       "/trial/#{$(this).attr("id")}.json"
       (res) ->
-        start = new Date()
-        state.events = res
-        state.start = start.getTime()
-        state.elevator.floor = 1
-        state.elevator.destination = 0
-        state.passengers = {}
-        state.leaving = {}
-        window.requestAnimationFrame(run)
+        run_json(res)
       "json")
