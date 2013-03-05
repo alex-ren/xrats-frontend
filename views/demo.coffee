@@ -172,8 +172,11 @@ run_file = (input) ->
   trial_reader.onload = (evnt) ->
     res = JSON.parse(evnt.target.result)
     run_json(res)
+    $(input).remove()
 
   trial_reader.readAsText(file)
+
+  
 
 setup = () ->
   requestAnimationFrame = window.requestAnimationFrame \
@@ -189,10 +192,12 @@ setup = () ->
   state.down.src = "/data/down.png"
 
   $(".upload").on "click", () ->
-    $("#trial_file").click()
+    upload_elt = $("<input type='file' style='display:none'>")
+    upload_elt.appendTo("<body>")
+    upload_elt.on "change", (event) ->
+      run_file(this)
 
-  $("#trial_file").on "change", (event) ->
-    run_file(this)
+    upload_elt.click()
 
   $(".trial").bind "click", () ->
     $.get(
