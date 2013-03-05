@@ -1,5 +1,5 @@
-#Chrome's requestAnimationFrame is acting
-# straing
+#Chrome's requestAnimationFrame gives a weird
+# timestamp.
 chrome_start = null
 
 $(document).ready () ->
@@ -164,16 +164,15 @@ run_json = (res) ->
   state.leaving = {}
   window.requestAnimationFrame(run)
 
-trial_reader = new FileReader()
-trial_reader.onload = (evnt) ->
+run_file = (input) ->
+  if input.files.length == 0
+    return
+  file = input.files[0]
+  trial_reader = new FileReader()
+  trial_reader.onload = (evnt) ->
     res = JSON.parse(evnt.target.result)
     run_json(res)
 
-run_file = (input) ->
-  if input.files.length == 0
-    console.log("shit")
-    return
-  file = input.files[0]
   trial_reader.readAsText(file)
 
 setup = () ->
@@ -189,10 +188,10 @@ setup = () ->
   state.up.src = "/data/up.png"
   state.down.src = "/data/down.png"
 
-  $(".upload").on "click", ()->
+  $(".upload").on "click", () ->
     $("#trial_file").click()
 
-  $("#trial_file").bind "change", (event) ->
+  $("#trial_file").on "change", (event) ->
     run_file(this)
 
   $(".trial").bind "click", () ->
