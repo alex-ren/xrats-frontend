@@ -6,8 +6,7 @@ $(document).ready () ->
     chrome_start = (new Date()).getTime()
     setup()
 
-#The drawing contexts that we'll use for the
-#demo.
+#The drawing contexts that we'll use for the demo.
 contexts = {}
 
 state = {
@@ -113,11 +112,21 @@ draw_onboard = () ->
       ctx.drawImage(state.passenger, 10 + i*30, 50)
 
 draw_requests = () ->
+  ctx = contexts.requests
+  ctx.font = "bold 1.6em Helvetica"
   for i in [1 .. 10]
+    x = 10 + (i-1) * 27
+    y = 50
     if state.requests[i]
-      $("#flr-#{i}").attr("class", "request-button queued")
+      ctx.fillStyle = "rgb(0,0,0)"
+      ctx.beginPath()
+      ctx.arc(x+ 6, y- 6, 12, 0, 2 * Math.PI)
+      ctx.fill()
+      ctx.fillStyle = "rgb(255,255,255)"
     else
-      $("#flr-#{i}").attr("class", "request-button")
+      ctx.fillStyle = "rgb(0,0,0)"
+
+    ctx.fillText(i.toString(), x, y)
 
 render_scene = (time) ->
   clear(contexts.elevator)
@@ -126,6 +135,7 @@ render_scene = (time) ->
   render_passengers(time)
   clear(contexts.onboard)
   draw_onboard()
+  clear(contexts.requests)
   draw_requests()
 
 run = (time) ->
@@ -218,6 +228,7 @@ setup = () ->
 
   contexts.elevator = get_context("simulator")
   contexts.onboard = get_context("onboard")
+  contexts.requests = get_context("requests")
 
   #Setup the sprites used.
   state.passenger.src = "/data/stick.png"

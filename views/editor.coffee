@@ -51,11 +51,11 @@ dispatcher = {
 setup_handlers = {
   compile: (ide) ->
     i = $("<input>")
-    i.attr("id","compile-flags")
-    i.attr("type","text")
+    i.attr("id", "compile-flags")
+    i.attr("type", "text")
     i.attr("value",ide.compile_flags.join(" "))
     span = $("<span>")
-    span.attr("class","form-label")
+    span.attr("class", "form-label")
     span.html("Compiler Flags: ")
     $("##{ide.id}-ctl-workspace").append(span)
     $("##{ide.id}-ctl-workspace").append(i)

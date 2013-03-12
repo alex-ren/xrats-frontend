@@ -6,7 +6,6 @@ require 'open4'
 require 'fileutils'
 require 'securerandom'
 require 'rsolr'
-require 'redcarpet'
 
 require 'sequel'
 
