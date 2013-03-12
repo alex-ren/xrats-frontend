@@ -5,6 +5,14 @@
     float: left;
 }
 
+.toggle-log {
+    margin-top: -20px;
+    float: right;
+    border: 0;
+    cursor: pointer;
+    background: none;
+}
+
 .queued {
     color: #FFFFFF;
     background-color: #000000;

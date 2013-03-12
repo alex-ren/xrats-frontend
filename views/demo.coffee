@@ -25,11 +25,11 @@ state = {
       ctx.fillStyle = "rgb(0, 0, 0)"
       ctx.fillRect(132, pos-25, 40, 50)
   }
-  direction: 0
   #Passengers waiting for service
   passengers: {}
   #Passengers onboard the elevator
   onboard: 0
+  #Floors requested
   requests: {}
   #Passengers leaving
   leaving: {}
@@ -37,7 +37,6 @@ state = {
   up: new Image()
   down: new Image()
 }
-
 
 clear = (ctx) ->
   ctx.clearRect(0, 0, 300, 500)
@@ -143,6 +142,8 @@ log = (message, time) ->
   li = $("<li>")
   li.html(message)
   li.appendTo $("#events")
+  $(".event-container").scrollTop(1000000)
+ 
 
 run = (time) ->
   if state.events.length == 0
@@ -253,9 +254,12 @@ setup = () ->
 
     upload_elt.click()
 
-  $(".trial").bind "click", () ->
+  $(".trial").on "click", () ->
     $.get(
       "/trial/#{$(this).attr("id")}.json"
       (res) ->
         run_json(res)
       "json")
+
+  $(".toggle-log").on "click", () ->
+    $(".event-container").toggle()
