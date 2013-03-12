@@ -27,6 +27,13 @@
     height: 100px;
 }
 
+.event-container {
+    width:100%;
+    height: 300px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+
 .fl {
     float: left;
 }

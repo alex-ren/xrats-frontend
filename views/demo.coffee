@@ -138,6 +138,12 @@ render_scene = (time) ->
   clear(contexts.requests)
   draw_requests()
 
+# Log an event for the user.
+log = (message, time) ->
+  li = $("<li>")
+  li.html(message)
+  li.appendTo $("#events")
+
 run = (time) ->
   if state.events.length == 0
     #Just keep redrawing the buffer, animations
@@ -158,6 +164,7 @@ run = (time) ->
       when "arrive"
         state.elevator.dest = -1
         state.elevator.floor = state.curr.flr
+        log("Arrived at floor #{state.curr.flr}")
       when "move"
         find_arrive = (events) ->
           for i,e of events
@@ -167,6 +174,7 @@ run = (time) ->
         nxt = find_arrive(state.events)
         state.elevator.dest = nxt.flr
         state.elevator.arrival = nxt.time
+        log("Moving from floor #{state.elevator.floor} to #{nxt.flr}")
       when "service"
         curr = state.curr
         if !state.passengers[curr.flr]
@@ -174,11 +182,13 @@ run = (time) ->
         state.passengers[curr.flr][curr.id] = {
           dir: curr.dir
         }
+        log("Passenger needs elevator at floor #{curr.flr}")
       when "request"
         curr = state.curr
         delete state.passengers[state.elevator.floor][curr.id]
         state.onboard++
         state.requests[curr.flr] = true
+        log("Passenger #{curr.id} wants to go to floor #{curr.flr}")
       when "exit"
         curr = state.curr
         state.leaving[curr.id] = {
@@ -187,7 +197,7 @@ run = (time) ->
         }
         state.onboard--
         state.requests[curr.flr] = false
-
+        log("Passenger #{curr.id} left the elevator at floor #{curr.flr}")
   render_scene(time)
   window.requestAnimationFrame(run)
 
