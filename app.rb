@@ -6,6 +6,7 @@ require 'open4'
 require 'fileutils'
 require 'securerandom'
 require 'rsolr'
+require 'redcarpet'
 
 require 'sequel'
 
@@ -391,6 +392,7 @@ end
 
 get "/tour" do
   haml :tour
+
 end
 
 get "/avr-tour" do

@@ -13,6 +13,7 @@ gem 'therubyracer', :require => "v8"
 gem 'open4'
 gem 'rsolr'
 gem 'faraday'
+gem 'redcarpet'
 
 gem 'sequel'
 gem 'sqlite3'

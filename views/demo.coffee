@@ -6,6 +6,10 @@ $(document).ready () ->
     chrome_start = (new Date()).getTime()
     setup()
 
+#The drawing contexts that we'll use for the
+#demo.
+contexts = {}
+
 state = {
   curr: {time: 0.0}
   events: []
@@ -14,16 +18,20 @@ state = {
     floor: 1
     dest: -1
     arrival: 0.0
-    #pos - a point on the y axis
+    # pos - a point on the y axis
     # Draw the elevator with its center
     # on this point.
     paint : (pos) ->
-      ctx = context()
+      ctx = contexts.elevator
       ctx.fillStyle = "rgb(0, 0, 0)"
       ctx.fillRect(132, pos-25, 40, 50)
   }
+  direction: 0
   #Passengers waiting for service
   passengers: {}
+  #Passengers onboard the elevator
+  onboard: 0
+  requests: {}
   #Passengers leaving
   leaving: {}
   passenger: new Image()
@@ -31,16 +39,12 @@ state = {
   down: new Image()
 }
 
-context = () ->
-  cs = document.getElementById("simulator")
-  return cs.getContext("2d")
 
-clear = () ->
-  ctx = context()
+clear = (ctx) ->
   ctx.clearRect(0, 0, 300, 500)
 
 draw_building = () ->
-  ctx = context()
+  ctx = contexts.elevator
   #Floors
   for i in [1..10]
     ctx.fillStyle = "rgb(0, 0, 0)"
@@ -75,14 +79,14 @@ render_elevator = (time) ->
     state.elevator.paint(pt)
 
 draw_passenger = (x, y, direction) ->
-  ctx = context()
+  ctx = contexts.elevator
   ctx.drawImage(state.passenger, x, y)
   if direction
     arrow = if direction == 'u' then state.up else state.down
     ctx.drawImage(arrow, x+17, y+15)
 
 render_passengers = (time) ->
-  ctx = context()
+  ctx = contexts.elevator
   for floor,folks of state.passengers
     i = 0
     for id, info of folks
@@ -98,12 +102,31 @@ render_passengers = (time) ->
     pos = 130*t
     draw_passenger(175.0+pos, ((10-info.floor)*45.0) + 5.0)
 
+draw_onboard = () ->
+  ctx = contexts.onboard
+  ctx.moveTo(0,0)
+  ctx.lineWidth = 5
+  ctx.strokeRect(0,0,300,100)
+  ctx.lineWidth = 1
+  if state.onboard > 0
+    for i in [0 .. state.onboard  - 1]
+      ctx.drawImage(state.passenger, 10 + i*30, 50)
+
+draw_requests = () ->
+  for i in [1 .. 10]
+    if state.requests[i]
+      $("#flr-#{i}").attr("class", "request-button queued")
+    else
+      $("#flr-#{i}").attr("class", "request-button")
 
 render_scene = (time) ->
-  clear()
+  clear(contexts.elevator)
   draw_building()
   render_elevator(time)
   render_passengers(time)
+  clear(contexts.onboard)
+  draw_onboard()
+  draw_requests()
 
 run = (time) ->
   if state.events.length == 0
@@ -144,12 +167,16 @@ run = (time) ->
       when "request"
         curr = state.curr
         delete state.passengers[state.elevator.floor][curr.id]
+        state.onboard++
+        state.requests[curr.flr] = true
       when "exit"
         curr = state.curr
         state.leaving[curr.id] = {
           left: time
           floor: curr.flr
         }
+        state.onboard--
+        state.requests[curr.flr] = false
 
   render_scene(time)
   window.requestAnimationFrame(run)
@@ -162,6 +189,7 @@ run_json = (res) ->
   state.elevator.destination = 0
   state.passengers = {}
   state.leaving = {}
+  state.onboard = []
   window.requestAnimationFrame(run)
 
 run_file = (input) ->
@@ -176,7 +204,9 @@ run_file = (input) ->
 
   trial_reader.readAsText(file)
 
-  
+get_context = (id) ->
+  cs = document.getElementById(id)
+  cs.getContext("2d")
 
 setup = () ->
   requestAnimationFrame = window.requestAnimationFrame \
@@ -185,6 +215,9 @@ setup = () ->
     || window.msRequestAnimationFrame
 
   window.requestAnimationFrame = requestAnimationFrame
+
+  contexts.elevator = get_context("simulator")
+  contexts.onboard = get_context("onboard")
 
   #Setup the sprites used.
   state.passenger.src = "/data/stick.png"
