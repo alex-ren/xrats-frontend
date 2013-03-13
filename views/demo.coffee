@@ -158,7 +158,6 @@ run = (time) ->
   else
     time = time - (state.start - chrome_start)
 
-  console.log(state.start)
   #Get next event
   if time >= state.events[0].time
     next = state.events.shift()
@@ -287,5 +286,4 @@ setup = () ->
       window.requestAnimationFrame(run)
       $(this).html("<i class='icon-pause'></i>")
 
-  $(".step-forward").on "click", () ->
-    #Chrome's timestamps screw everything up.
+#  $(".step-forward").on "click", () -> null
