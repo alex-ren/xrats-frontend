@@ -15,6 +15,14 @@
       %h3 Requested Floors
       %canvas#requests{:width => "300", :height => "100"}
     .row
+      .event-control
+        %button.custom-button.step-backward
+          %i.icon-step-backward
+        %button.custom-button.toggle-play
+          %i.icon-pause
+        %button.custom-button.step-forward
+          %i.icon-step-forward
+    .row
       %h3 Event Log 
       %input.toggle-log{:type=>"button", :value=> "[show/hide]"}
       .event-container

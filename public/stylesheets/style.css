@@ -1,3 +1,8 @@
+.event-control {
+    margin: 0 auto;
+    width: 100px;
+}
+
 .request-button {
     width:24px;
     font-size: 1.25em;
@@ -8,6 +13,12 @@
 .toggle-log {
     margin-top: -20px;
     float: right;
+    border: 0;
+    cursor: pointer;
+    background: none;
+}
+
+.custom-button {
     border: 0;
     cursor: pointer;
     background: none;

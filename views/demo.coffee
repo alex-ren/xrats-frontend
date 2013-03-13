@@ -1,4 +1,4 @@
-#Chrome's requestAnimationFrame gives a weird
+# Chrome's requestAnimationFrame gives a weird
 # timestamp.
 chrome_start = null
 
@@ -13,6 +13,8 @@ state = {
   curr: {time: 0.0}
   events: []
   start: 0.0
+  paused: 0.0
+  play: true
   elevator: {
     floor: 1
     dest: -1
@@ -144,7 +146,6 @@ log = (message, time) ->
   li.appendTo $("#events")
   $(".event-container").scrollTop(1000000)
  
-
 run = (time) ->
   if state.events.length == 0
     #Just keep redrawing the buffer, animations
@@ -157,6 +158,7 @@ run = (time) ->
   else
     time = time - (state.start - chrome_start)
 
+  console.log(state.start)
   #Get next event
   if time >= state.events[0].time
     next = state.events.shift()
@@ -200,17 +202,24 @@ run = (time) ->
         state.requests[curr.flr] = false
         log("Passenger #{curr.id} left the elevator at floor #{curr.flr}")
   render_scene(time)
-  window.requestAnimationFrame(run)
+  if state.play
+    window.requestAnimationFrame(run)
 
 run_json = (res) ->
   start = new Date()
+  #Reset the state
   state.events = res
   state.start = start.getTime()
+  state.paused = 0.0
   state.elevator.floor = 1
   state.elevator.destination = 0
   state.passengers = {}
   state.leaving = {}
   state.onboard = []
+  state.requests = {}
+  state.play = true
+
+  $("#events").empty()
   window.requestAnimationFrame(run)
 
 run_file = (input) ->
@@ -263,3 +272,20 @@ setup = () ->
 
   $(".toggle-log").on "click", () ->
     $(".event-container").toggle()
+
+  $(".toggle-play").on "click", () ->
+    # Ignore if nothing is happening
+    if state.play
+      state.play = false
+      state.paused = (new Date()).getTime()
+      $(this).html("<i class='icon-play'></i>")
+    else
+      state.play = true
+      now = (new Date()).getTime()
+      dt = now - state.paused
+      state.start += dt
+      window.requestAnimationFrame(run)
+      $(this).html("<i class='icon-pause'></i>")
+
+  $(".step-forward").on "click", () ->
+    #Chrome's timestamps screw everything up.
